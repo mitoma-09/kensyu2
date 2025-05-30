@@ -1,0 +1,32 @@
+{
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "type": "cppbuild",
+                "label": "C/C++: gcc.exe アクティブなファイルをビルド",
+                "command": "C:/Users/Negam/mingw64/bin/gcc.exe",
+                "args": [
+                    "${file}",
+                    "-o",
+                    "${fileBasenameNoExtension}.exe",
+                    "-I",
+                    "C:/Users/Negam/mingw64/include",
+                    "-L",
+                    "C:/Users/Negam/SQLite/SQLite-lib",
+                    "-lsqlite3",
+                    "-fexec-charset=UTF-8", // 実行時の文字コードを UTF-8 に設定
+                    "-finput-charset=UTF-8"  // ソースコードの文字コードを UTF-8 に設定
+                ],
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                },
+                "problemMatcher": [
+                    "$gcc"
+                ],
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                }
+            }
+        ]
+    }
