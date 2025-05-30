@@ -28,9 +28,11 @@ int under_average_sum_all(char *text);
 
 int validate_date(const int date);
 
+int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **), void *callback_data);
+
 /// @brief 構造体
 typedef struct data{
-    char name[30];
+    char name[40];
     int day;
     int nLang;
     int math;
@@ -41,21 +43,8 @@ typedef struct data{
     int phys;
     int chem;
     int bio;
+    int ID;
 } DATA;
-/// @brief 構造体 （テストデータ）
-typedef struct point{
-    char name[30];
-    int day;
-    int nLang;
-    int math;
-    int Eng;
-    int JHist;
-    int wHist;
-    int geo;
-    int phys;
-    int chem;
-    int bio;
-} POINT;
 
 /// @brief 平均点を返すコールバック関数
 /// @param data
@@ -89,9 +78,9 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 
     // printf("%-20s %-5s %-10s\n", argv[0], argv[1], argv[2]); // データを表示
     //  データがNULLの場合の処理を追加
-        printf("%-15s  %-10s   %-6s \n", argv[0] ? argv[0] : "-",
-                                        argv[1] ? argv[1] : "-",
-                                        argv[2] ? argv[2] : "-");
+    printf("%-15s  %-10s   %-6s \n", argv[0] ? argv[0] : "-",
+           argv[1] ? argv[1] : "-",
+           argv[2] ? argv[2] : "-");
 
     /*for (int i = 0; i < argc; i++) {
         printf("%s = %s\n", colName[i], argv[i] ? argv[i] : "NULL");
@@ -105,6 +94,7 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 // グローバル変数
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
+// #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
@@ -126,6 +116,8 @@ char text[MAX_SQL_SIZE]; // SQL文用
 char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
                     "chem", "bio"};
 
+#define subjects_arrays 9
+
 ///////////////////////////
 // main関数
 ///////////////////////////
@@ -141,8 +133,8 @@ int main(int argc, char *argv[]){
 
     table = "name TEXT, day INTEGER, nLang INTEGER, math INTEGER, "
             "Eng INTEGER, JHist INTEGER, wHist INTEGER, geo INTEGER , "
-            "phys INTEGER, chem INTEGER, bio INTEGER, "
-            "PRIMARY KEY(name) ";
+            "phys INTEGER, chem INTEGER, bio INTEGER, ID INTEGER,"
+            "PRIMARY KEY(name, day, ID) ";
 
     // strcpy(text, "SELECT * FROM pointTools");
     // text = "SELECT * FROM pointTools"; // ベースのSQL
@@ -197,7 +189,7 @@ int main(int argc, char *argv[]){
     if (c == 0){
         printf("参照機能を終了します\n");
     }else{
-        printf("もう一度やり直してください\n");
+        // printf("もう一度やり直してください\n");
     }
 
     return 0;
@@ -208,7 +200,7 @@ int main(int argc, char *argv[]){
 ///////////////////////////
 int choice1(void){
 
-    int b, c, d;
+    int b, c, d, e;
     int day;
     double average;
 
@@ -231,6 +223,7 @@ int choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
+        while(getchar() != '\n') ;
 
         if (!validate_date(day)){ // 正常な日付の場合は処理を続行
             return 1;
@@ -239,11 +232,17 @@ int choice1(void){
 
         printf("選択した試験日 %d のデータを取得します...\n", day);
 
-        for (int i = 0; i < 9; i++){                 // subjectの回数ループ
+        for (int i = 0; i < subjects_arrays; i++){   // subjectの回数ループ
             isFirstCall = 1;                         // ヘッダーの表示リセット
             top_sort_day(day, 5, subjects[i], text); // 別のクラスで処理
 
             printf("\n");
+            
+            if(i!=subjects_arrays){
+                printf("%sは以上です。\n",subjects[i]);
+
+                while(getchar() != '\n') ; //エンターキー待機
+            }
         }
 
         break;
@@ -291,6 +290,7 @@ int choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
+        while(getchar() != '\n') ;
 
         printf("\n");
 
@@ -298,11 +298,16 @@ int choice1(void){
             return 1;
         }
 
-        for (int i = 0; i < 9; i++){               // subjectの回数ループ
+        for (int i = 0; i < subjects_arrays; i++){ // subjectの回数ループ
             isFirstCall = 1;                       // ヘッダーのリセット
             under_average(day, subjects[i], text); // 別のクラスで処理
 
-            printf("\n");
+            if(i!=subjects_arrays-1){
+                //printf("%sは以上です。\n",subjects[i]);
+
+                while(getchar() != '\n') ; //エンターキー待機
+            }
+            //printf("\n");
         }
 
         break;
@@ -324,12 +329,12 @@ int choice1(void){
         break;
     case 6:
         printf("全試験における各科目合計トップ10を表示します\n");
-        printf("\n");
-        for (int i = 0; i < 9; i++){         // subjectの回数ループ
-            isFirstCall = 1;                 // ヘッダーの表示リセット
-            top_sort(10, subjects[i], text); // 別のクラスで処理
+        while(getchar() != '\n') ;
+        for (int i = 0; i < subjects_arrays; i++){  // subjectの回数ループ
+            isFirstCall = 1;                        // ヘッダーの表示リセット
+            top_sort(10, subjects[i], text);        // 別のクラスで処理
 
-            printf("\n");
+            while(getchar() != '\n') ;
         }
 
         break;
@@ -344,12 +349,12 @@ int choice1(void){
         break;
     case 8:
         printf("全試験における各科目平均点数を表示します\n");
-        printf("\n");
-        for (int i = 0; i < 9; i++){    // subjectの回数ループ
-            isFirstCall = 1;            // ヘッダーの表示リセット
+        while(getchar() != '\n') ;
+        for (int i = 0; i < subjects_arrays; i++){  // subjectの回数ループ
+            isFirstCall = 1;                        // ヘッダーの表示リセット
             aver_subject(subjects[i], text);
 
-            printf("\n");
+            while(getchar() != '\n') ;
         }
 
         break;
@@ -391,7 +396,6 @@ int choice2(void){
     // printf(" 1)全試験における全科目平均点数\n");
     printf(" 1)全試験における各科目平均点数以下の受験者一覧\n");
     printf(" 2)全試験における全科目平均点数以下の受験者一覧\n");
-    // printf(" 4)試験実施日毎の全科目平均点数\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
     scanf("%d", &b);
@@ -399,12 +403,13 @@ int choice2(void){
     switch (b){
     case 1:
         printf("全試験における各科目平均点数以下の受験者一覧を表示します\n");
+        while(getchar() != '\n') ;
 
-        for (int i = 0; i < 9; i++){              // subjectの回数ループ
+        for (int i = 0; i < subjects_arrays; i++){// subjectの回数ループ
             isFirstCall = 1;                      // ヘッダーのリセット
             under_average_all(subjects[i], text); // 別のクラスで処理
 
-            printf("\n");
+            while(getchar() != '\n') ;
         }
         break;
     case 2:
@@ -439,7 +444,7 @@ int choice2(void){
 
         break;
     }
-       
+
     return 0;
 }
 
@@ -447,11 +452,11 @@ int choice2(void){
 // 参照機能
 ///////////////////////////
 
-/// @brief 教科のトップN人を表示
+/// @brief 科目のトップN人を表示
 /// @param person トップN人
-/// @param subject 教科
-/// @param text 
-/// @return 
+/// @param subject 科目
+/// @param text
+/// @return
 int top_sort(int person, char *subject, char *text){
     printf("%sのトップ%dを表示します。\n", subject, person);
 
@@ -468,26 +473,21 @@ int top_sort(int person, char *subject, char *text){
         printf("エラー: person の値が不正です。\n");
     }
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    int rc; // result codes
-    char *error_message;
-
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    int rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
 
-/// @brief 全教科総合得点ののトップN人を表示
+/// @brief 全科目総合得点ののトップN人を表示
 /// @param person トップN人
-/// @param text 
-/// @return 
+/// @param text
+/// @return
 int top_sort_sum(int person, char *text){
-    printf("全教科総合得点のトップ%dを表示します。\n", person);
+    printf("全科目総合得点のトップ%dを表示します。\n", person);
 
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
@@ -508,28 +508,22 @@ int top_sort_sum(int person, char *text){
         printf("エラー: person の値が不正です。\n");
     }
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    int rc; // result codes
-    char *error_message;
-
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    int rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
 
-/// @brief 日程ごとの教科トップN人を表示
+/// @brief 日程ごとの科目トップN人を表示
 /// @param day 日程指定
 /// @param person トップN人
-/// @param subject 教科
-/// @param text 
-/// @return 
+/// @param subject 科目
+/// @param text
+/// @return
 int top_sort_day(int day, int person, char *subject, char *text){
-    // printf("%dの日付についてソートを開始します。\n",day);
     printf("%sのトップ%dを表示します。\n", subject, person);
 
     if (person > 0){
@@ -549,28 +543,23 @@ int top_sort_day(int day, int person, char *subject, char *text){
         printf("エラー: person の値が不正です。\n");
     }
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    int rc; // result codes
-    char *error_message;
-
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    int rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
 
-/// @brief 日程ごとの全教科総合点トップN人を表示
+/// @brief 日程ごとの全科目総合点トップN人を表示
 /// @param day 日程指定
 /// @param person トップN人
-/// @param text 
-/// @return 
+/// @param text
+/// @return
 int top_sort_day_sum(int day, int person, char *text){
     printf("%dの日付についてソートを開始します。\n", day);
-    printf("全教科総合得点のトップ%dを表示します。\n", person);
+    printf("全科目総合得点のトップ%dを表示します。\n", person);
 
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
@@ -605,46 +594,38 @@ int top_sort_day_sum(int day, int person, char *text){
         printf("エラー: person の値が不正です。\n");
     }
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    int rc; // result codes
-    char *error_message;
-
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    int rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
 
-/// @brief 教科平均点検索・表示
-/// @param subject 教科
-/// @param text 
+/// @brief 科目平均点検索・表示
+/// @param subject 科目
+/// @param text
 /// @return 平均点(少数第二位四捨五入)
 double aver_subject(char *subject, char *text){
     double average = 0;
-    char *error_message;
 
-    snprintf(text,MAX_SQL_SIZE,
+    snprintf(text, MAX_SQL_SIZE,
              "SELECT AVG(NULLIF(%s, 0)) FROM %s WHERE %s IS NOT NULL;",
              subject, table_name, subject);
-    // printf("実行するSQL: %s\n", text);
 
-    int rc = sqlite3_exec(db, text, callback_avg, &average, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-        return -1;
-    }
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
+
+    int rc = execute_sql(text, callback_avg, &average);
 
     printf("%sの全日通した平均点は %.1f 点です。\n", subject, average);
     return average;
 }
 
 /// @brief 全体平均点検索
-/// @param text 
+/// @param text
 /// @return 全体平均点(少数第二位四捨五入)
 double aver_sum(char *text){
     double average = 0;
@@ -663,23 +644,18 @@ double aver_sum(char *text){
              " ) AS avg_per_person;",
              table_name);
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    int rc; // result codes
-    char *error_message;
-
-    rc = sqlite3_exec(db, text, callback_avg, &average, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    int rc = execute_sql(text, callback_avg, &average);
 
     return average; // 全員の得点の平均値を戻り値
 }
 
-/// @brief 日程ごとの全体平均点検索 
+/// @brief 日程ごとの全体平均点検索
 /// @param day 日程検索
-/// @param text 
+/// @param text
 /// @return 平均点(少数第二位四捨五入)
 double aver_day_sum(int day, char *text){
     double average = 0;
@@ -713,41 +689,29 @@ double aver_day_sum(int day, char *text){
              " ) AS avg_per_person;",
              table_name, day);
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    int rc; // result codes
-    char *error_message;
-
-    rc = sqlite3_exec(db, text, callback_avg, &average, &error_message);
-    // rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    int rc = execute_sql(text, callback_avg, &average);
 
     return average; // 全員の得点の平均値を戻り値
 }
 
-/// @brief 日程ごとの教科平均点以下生徒検索
+/// @brief 日程ごとの科目平均点以下生徒検索
 /// @param day 日程検索
-/// @param subject 教科
-/// @param text 
-/// @return 
+/// @param subject 科目
+/// @param text
+/// @return
 int under_average(int day, char *subject, char *text){
     double average = 0;
-    char *error_message;
 
     snprintf(text, MAX_SQL_SIZE,
              "SELECT AVG(NULLIF(%s, 0)) FROM %s WHERE day = %d AND %s IS NOT NULL;",
              subject, table_name, day, subject);
 
     // SQLを実行して平均点を取得
-    int rc = sqlite3_exec(db, text, callback_avg, &average, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-        return -1;
-    }
+    int rc = execute_sql(text, callback_avg, &average);
 
     printf("%sの平均点は%.1f点です。\n", subject, average);
     printf("%sの得点が平均点以下の生徒を表示します。\n", subject);
@@ -765,31 +729,28 @@ int under_average(int day, char *subject, char *text){
              " ORDER BY p.%s DESC;",
              subject, table_name, day, subject, subject, table_name, day, subject, subject);
 
-            /*"SELECT * FROM ( "
-            "SELECT name, day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
-            "FROM %s WHERE %s IS NOT NULL AND day = %d "
-            ") AS ranked_data "
-            "WHERE ranking <= %d "
-            "ORDER BY ranking ASC;"
-            //,subject,subject,table_name,subject,day,person);*/
+    /*"SELECT * FROM ( "
+    "SELECT name, day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
+    "FROM %s WHERE %s IS NOT NULL AND day = %d "
+    ") AS ranked_data "
+    "WHERE ranking <= %d "
+    "ORDER BY ranking ASC;"
+    //,subject,subject,table_name,subject,day,person);*/
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
 
 /// @brief 日程ごとの平均点以下生徒検索
 /// @param day 日程
-/// @param text 
-/// @return 
+/// @param text
+/// @return
 int under_average_sum(int day, char *text){
-
     double average = aver_day_sum(day, text);
 
     // printf("試験実施日毎の全科目平均点数以下の受験者一覧を表示します\n");
@@ -825,37 +786,28 @@ int under_average_sum(int day, char *text){
              " ORDER BY avg_score DESC; ",
              table_name, day, average);
 
-    int rc; // result codes
-    char *error_message;
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    int rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
 
-/// @brief 教科平均点以下生徒検索
-/// @param subject　教科 
-/// @param text 
-/// @return 
+/// @brief 科目平均点以下生徒検索
+/// @param subject　科目
+/// @param text
+/// @return
 int under_average_all(char *subject, char *text){
     double average = 0;
-    char *error_message;
 
     snprintf(text, MAX_SQL_SIZE,
              "SELECT AVG(NULLIF(%s, 0)) FROM %s WHERE %s IS NOT NULL;",
              subject, table_name, subject);
 
     // SQLを実行して平均点を取得
-    int rc = sqlite3_exec(db, text, callback_avg, &average, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-        return -1;
-    }
+    int rc = execute_sql(text, callback_avg, &average);
 
     printf("%sの平均点は%.1f点です。\n", subject, average);
     printf("%sの得点が平均点以下の生徒を表示します。\n", subject);
@@ -881,20 +833,18 @@ int under_average_all(char *subject, char *text){
     "ORDER BY ranking ASC;"
     //,subject,subject,table_name,subject,day,person);*/
 
-    // printf("実行するSQL: %s\n", text);
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
 
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }
+    rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
 
 /// @brief 全体平均点以下生徒検索
-/// @param text 
-/// @return 
+/// @param text
+/// @return
 int under_average_sum_all(char *text){
 
     double average = aver_sum(text);
@@ -930,14 +880,19 @@ int under_average_sum_all(char *text){
              " ORDER BY avg_score DESC; ",
              table_name, average);
 
-    int rc; // result codes
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
+
+    int rc = execute_sql(text, callback2, 0);
+    /*int rc; // result codes
     char *error_message;
 
     rc = sqlite3_exec(db, text, callback2, 0, &error_message);
     if (rc != SQLITE_OK){
         fprintf(stderr, "SQLエラー: %s\n", error_message);
         sqlite3_free(error_message);
-    }
+    }*/
 
     return 0;
 }
@@ -951,8 +906,6 @@ int validate_date(int date){
         // printf("%d\n",date);
         return 0;
     }
-
-    // char* yearC,dayC,monthC;
 
     int year, day, month;
     year = date / 10000;
@@ -982,3 +935,22 @@ int validate_date(int date){
 
     return 1;
 }
+
+/// @brief SQL実行とエラー処理
+/// @param sql
+/// @param callback
+/// @param callback_data
+/// @return
+int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **), void *callback_data){
+    int rc;
+    char *error_message;
+    rc = sqlite3_exec(db, sql, callback, callback_data, &error_message);
+    if (rc != SQLITE_OK){
+        fprintf(stderr, "SQLエラー: %s\n", error_message);
+        sqlite3_free(error_message);
+    }
+    return rc;
+}
+
+//#define TOTAL_SCORE "COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + COALESCE(JHist, 0)
+//+ COALESCE(wHist, 0) + COALESCE(geo, 0) + COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
