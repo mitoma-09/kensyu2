@@ -1,20 +1,15 @@
 {
     "configurations": [
+        
         {
-            "name": "Win32",
+            "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "C:/Users/Negam/mingw64/include"
+                "${workspaceFolder}/**"
             ],
-            "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
-            ],
-            "compilerPath": "C:/Users/Negam/mingw64/bin/gcc.exe",
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc ",
             "cStandard": "c17",
-            "cppStandard": "c++17",
-            "intelliSenseMode": "windows-gcc-x64"
+            "cppStandard": "c++17"
         }
     ],
     "version": 4
