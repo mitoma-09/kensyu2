@@ -33,7 +33,8 @@ int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **),
 /// @brief 構造体
 typedef struct data{
     char name[40];
-    int day;
+    //int day;
+    int exam_day;
     int nLang;
     int math;
     int Eng;
@@ -97,6 +98,10 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 // #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
+
+#define TOTAL_SCORE "COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + \
+                     COALESCE(JHist, 0)+ COALESCE(wHist, 0) + COALESCE(geo, 0) + \
+                     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
 
 sqlite3_stmt *stmt_select; // 検索 用　
 sqlite3_stmt *stmt_insert; // 挿入 用
