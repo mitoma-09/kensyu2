@@ -93,3 +93,4 @@ int main(int argc, char **argv) {
     sqlite3_close(db);
 
     return 0; // プログラムを正常終了
+}
