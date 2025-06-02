@@ -328,6 +328,7 @@ int main() {
     int id = register_data(db, name, exam_day, scores);
     if (id != -1) {
         printf("登録完了しました。あなたのIDは「%d」 です。\n", id);
+        printf("※IDは他の機能で使います。覚えておきましょう。※\n");
     }
 
     sqlite3_close(db);
