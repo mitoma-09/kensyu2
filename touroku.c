@@ -63,7 +63,7 @@ int is_duplicate(sqlite3 *db, const char *name, int exam_day) {
     return (count > 0);
 }
 
-void register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
+int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     sqlite3_stmt *stmt;
     const char *insert_sql =
         "INSERT INTO testtable "
@@ -72,7 +72,7 @@ void register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
 
     if (sqlite3_prepare_v2(db, insert_sql, -1, &stmt, NULL) != SQLITE_OK) {
         fprintf(stderr, "データ登録の準備に失敗しました: %s\n", sqlite3_errmsg(db));
-        return;
+        return -1;
     }
 
     sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
@@ -85,12 +85,19 @@ void register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
         }
     }
 
-    if (sqlite3_step(stmt) == SQLITE_DONE) {
+    int result = sqlite3_step(stmt);
+    if (result == SQLITE_DONE) {
         printf("データが正常に登録されました。\n");
     } else {
         fprintf(stderr, "データ登録に失敗しました: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
     }
     sqlite3_finalize(stmt);
+
+    // 挿入された行のIDを取得
+    int id = sqlite3_last_insert_rowid(db);
+    return id;
 }
 
 // --- バリデーション関数 ---
@@ -173,6 +180,7 @@ int is_science_registered(int reg[]) {
     }
     return 0;
 }
+
 int main() {
     setlocale(LC_ALL, "ja_JP.UTF-8");
 
@@ -317,7 +325,10 @@ int main() {
         }
     }
 
-    register_data(db, name, exam_day, scores);
+    int id = register_data(db, name, exam_day, scores);
+    if (id != -1) {
+        printf("登録完了しました。あなたのIDは %d です。\n", id);
+    }
 
     sqlite3_close(db);
     printf("プログラム終了\n");
