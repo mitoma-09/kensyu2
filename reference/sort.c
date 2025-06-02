@@ -620,7 +620,7 @@ double aver_subject(char *subject, char *text){
     double average = 0;
 
     snprintf(text, MAX_SQL_SIZE,
-             "SELECT AVG(NULLIF(%s, 0)) FROM %s WHERE %s IS NOT NULL;",
+             "SELECT AVG( %s ) FROM %s WHERE %s IS NOT NULL;",
              subject, table_name, subject);
 
 #ifdef DEBUG
