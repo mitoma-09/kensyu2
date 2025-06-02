@@ -279,27 +279,39 @@ int main() {
     } while (!validate_date(exam_date));
 
     // 科目と点数登録
+do {
+    display_subjects();
     do {
-        display_subjects();
-        do {
-            printf("科目を選択してください（1〜9）: ");
-            scanf("%d", &subject_choice);
-        } while (subject_choice < 1 || subject_choice > 9);
+        printf("科目を選択してください（1〜9）: ");
+        scanf("%d", &subject_choice);
+    } while (subject_choice < 1 || subject_choice > 9);
 
-        const char *subject = get_subject_name(subject_choice);
-        strcpy(subjects[subject_count], subject);
+    const char *subject = get_subject_name(subject_choice);
+    if (subject == NULL) {
+        printf("無効な科目が選択されました。\n");
+        continue;
+    }
+    strcpy(subjects[subject_count], subject);
 
-        do {
-            printf("点数を入力してください: ");
-            scanf("%d", &score);
-        } while (!validate_score(score));
+    do {
+        printf("点数を入力してください: ");
+        scanf("%d", &score);
+    } while (!validate_score(score));
 
-        scores[subject_count] = score;
-        subject_count++;
+    scores[subject_count] = score;
+    subject_count++;
 
-        printf("他の科目を登録しますか？（y/n）: ");
-        scanf(" %c", &continue_choice);
-    } while (tolower(continue_choice) == 'y');
+    printf("科目「%s」に点数 %d を登録しました。\n", subject, score);
+
+    // ここで5科目に達したらループを抜ける
+    if (subject_count == 5) {
+        printf("5科目が登録されました。自動的に登録を終了します。\n");
+        break;
+    }
+
+    printf("他の科目を登録しますか？（y/n）: ");
+    scanf(" %c", &continue_choice);
+} while (tolower(continue_choice) == 'y');
 
     // 試験セッション登録
     exam_session_id = register_exam(db, user_id, exam_date);
