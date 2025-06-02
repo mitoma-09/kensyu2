@@ -512,12 +512,12 @@ int top_sort_sum(int person, char *text){
                  "SELECT * FROM (  SELECT name, day, "
                  "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
-                 "    ( %s ) DESC) AS ranking  "
+                 "    ( %s) DESC) AS ranking  "
                  "FROM %s  "
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
-                 TOTAL_SCORE, TOTAL_SCORE ,table_name, person);
+                 TOTAL_SCORE,TOTAL_SCORE,table_name, person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }

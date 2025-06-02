@@ -118,4 +118,21 @@ void update_candidate_info(sqlite3 *db) {
     }
 
     sqlite3_finalize(stmt);
+
+
+}
+
+int main(void) {
+    sqlite3 *db;
+    int rc = sqlite3_open("testmanager.db", &db);  // 適宜データベース名変更
+
+    if (rc != SQLITE_OK) {
+        printf("データベースを開けません: %s\n", sqlite3_errmsg(db));
+        return 1;
+    }
+
+    update_candidate_info(db);
+
+    sqlite3_close(db);
+    return 0;
 }
