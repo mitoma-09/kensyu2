@@ -497,18 +497,14 @@ int top_sort_sum(int person, char *text){
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
                  "SELECT * FROM (  SELECT name, day, "
-                 "   (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "    COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "    COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score,  "
+                 "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
-                 "    (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "     COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
+                 "    ( %s) DESC) AS ranking  "
                  "FROM %s  "
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
-                 table_name, person);
+                 TOTAL_SCORE,TOTAL_SCORE,table_name, person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }
