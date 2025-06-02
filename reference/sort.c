@@ -72,14 +72,14 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
     extern int isFirstCall; // 初回かどうかを判定するフラグ
 
     if (isFirstCall){ // カラム名を表示
-        printf("%-15s %-10s %-6s \n", colName[0], colName[1], colName[2]);
+        printf("%-25s %-10s %-6s \n", colName[0], colName[1], colName[2]);
         printf("--------------------------------------------\n"); // 区切り線
         isFirstCall = 0;                                          // フラグを更新
     }
 
     // printf("%-20s %-5s %-10s\n", argv[0], argv[1], argv[2]); // データを表示
     //  データがNULLの場合の処理を追加
-    printf("%-15s  %-10s   %-6s \n", argv[0] ? argv[0] : "-",
+    printf("%-25s  %-10s   %-6s \n", argv[0] ? argv[0] : "-",
            argv[1] ? argv[1] : "-",
            argv[2] ? argv[2] : "-");
 
@@ -496,19 +496,28 @@ int top_sort_sum(int person, char *text){
 
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
+                 //  "SELECT * FROM (  SELECT name, day, "
+                 //  "   (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
+                 //  "    COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
+                 //  "    COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score,  "
+                 //  "RANK() OVER (ORDER BY "
+                 //  "    (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
+                 //  "     COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
+                 //  "     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
+                 //  "FROM %s  "
+                 //  ") AS ranked_data  "
+                 //  "WHERE ranking <= %d  "
+                 //  "ORDER BY ranking ASC;",
+                 //  table_name, person);
                  "SELECT * FROM (  SELECT name, day, "
-                 "   (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "    COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "    COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score,  "
+                 "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
-                 "    (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "     COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
+                 "    ( %s ) DESC) AS ranking  "
                  "FROM %s  "
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
-                 table_name, person);
+                 TOTAL_SCORE, TOTAL_SCORE ,table_name, person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }
