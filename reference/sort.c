@@ -957,4 +957,3 @@ int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **),
 //+ COALESCE(wHist, 0) + COALESCE(geo, 0) + COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
 
 
-//merge用
