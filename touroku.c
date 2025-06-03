@@ -201,9 +201,9 @@ int main() {
 
     sqlite3 *db = connect_to_database("testmanager.db");
 
-    // 登録可能数の確認
+    // 登録可能な受験者数を確認（DBに登録されている行数）
     int registered_count = get_registered_count(db);
-    if (registered_count >= 1000) {  // 修正: 最大1000人制限
+    if (registered_count >= 1000) {
         printf("エラー: 登録可能な受験者数（最大1000人）を超えました。\n");
         sqlite3_close(db);
         return 1;
@@ -214,6 +214,9 @@ int main() {
     int exam_day;
     int scores[SUBJECT_COUNT];
     int registered[SUBJECT_COUNT] = {0};
+
+    // 科目登録数カウント用変数
+    int registered_subject_count = 0;
 
     // 点数初期化：-1は未入力
     for (int i = 0; i < SUBJECT_COUNT; i++) {
@@ -262,49 +265,28 @@ int main() {
         }
         printf("------------------\n");
 
-        if (registered_count >= 5) {
+        if (registered_subject_count >= 5) {
             printf("最大5科目の登録に達しました。これ以上登録できません。\n");
             break;
         }
-    }
 
-       while (1) {
-    printf("\n--- 科目一覧 ---\n");
-    for (int i = 0; i < SUBJECT_COUNT; i++) {
-        printf(" %d: %s", i + 1, subjects_ja[i]);
-        if (registered[i]) {
-            printf(" [登録済み]");
-        }
-        printf("\n");
-    }
-    printf("------------------\n");
-
-    if (registered_count >= 5) {
-        printf("最大5科目の登録に達しました。これ以上登録できません。\n");
-        break;
-    }
-
-    while (1) {
         printf("科目を選択してください（1〜9、終了は0）: ");
-        char input[10]; // 入力バッファ
+        char input[10];
         if (fgets(input, sizeof(input), stdin) == NULL) {
             printf("入力エラー：もう一度入力してください。\n");
-            continue; // 再入力を促す
+            continue;
         }
-
-        // 改行を削除
         input[strcspn(input, "\n")] = '\0';
 
-        // 数値チェック
         char *endptr;
         int sel = strtol(input, &endptr, 10);
         if (*endptr != '\0' || sel < 0 || sel > 9) {
             printf("エラー: 0〜9の数字を入力してください。\n");
-            continue; // 再入力を促す
+            continue;
         }
 
         if (sel == 0) {
-            goto end_program; // プログラム終了
+            break; // 登録終了
         }
 
         int idx = sel - 1;
@@ -314,7 +296,7 @@ int main() {
             continue;
         }
 
-        // 文系科目は一つだけ
+        // 文系科目は1つだけ
         int is_liberal = 0;
         for (int i = 0; i < 3; i++) {
             if (idx == liberal_indices[i]) {
@@ -327,7 +309,7 @@ int main() {
             continue;
         }
 
-        // 理系科目は一つだけ
+        // 理系科目は1つだけ
         int is_science = 0;
         for (int i = 0; i < 3; i++) {
             if (idx == science_indices[i]) {
@@ -345,46 +327,43 @@ int main() {
             printf("点数を入力してください（0〜100）: ");
             if (scanf("%d", &score) != 1) {
                 printf("整数を入力してください。\n");
-                while (getchar() != '\n'); // 入力バッファをクリア
+                while (getchar() != '\n');
                 continue;
             }
-            while (getchar() != '\n'); // 改行を消費
+            while (getchar() != '\n');
         } while (!validate_score(score));
 
         scores[idx] = score;
         registered[idx] = 1;
-        registered_count++;
+        registered_subject_count++;
 
         printf("科目「%s」に点数 %d を登録しました。\n", subjects_ja[idx], score);
 
-        if (registered_count >= 5) {
+        if (registered_subject_count >= 5) {
             printf("最大登録科目数に達しました。\n");
             break;
         }
+
+        // 他の科目登録続行の問い合わせ
+        while (1) {
+            printf("他の科目を登録しますか？（y/n）: ");
+            char yn[10];
+            if (fgets(yn, sizeof(yn), stdin) == NULL) {
+                printf("入力エラー\n");
+                continue;
+            }
+            if (yn[0] == 'y' || yn[0] == 'Y') {
+                break; // 次の登録へ
+            } else if (yn[0] == 'n' || yn[0] == 'N') {
+                goto end_program;
+            } else {
+                printf("エラー: 'y' または 'n' を入力してください。\n");
+            }
+        }
     }
 
-    while (1) {
-        printf("他の科目を登録しますか？（y/n）: ");
-        char yn[10]; // 入力バッファ
-        if (fgets(yn, sizeof(yn), stdin) == NULL) {
-            printf("入力エラー\n");
-            continue; // 再入力を促す
-        }
-
-        // 最初の文字で判定
-        if (yn[0] == 'y' || yn[0] == 'Y') {
-            break; // 次の登録に進む
-        } else if (yn[0] == 'n' || yn[0] == 'N') {
-            goto end_program; // プログラム終了
-        } else {
-            printf("エラー: 'y' または 'n' を入力してください。\n");
-        }
-    }
-}
-
-// end_program ラベルでプログラムの終了部分にジャンプ
 end_program:
-sqlite3_close(db);
-printf("プログラム終了\n");
-return 0;
+    sqlite3_close(db);
+    printf("プログラム終了\n");
+    return 0;
 }
