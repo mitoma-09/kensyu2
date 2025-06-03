@@ -63,6 +63,21 @@ int is_duplicate(sqlite3 *db, const char *name, int exam_day) {
     return (count > 0);
 }
 
+int get_registered_count(sqlite3 *db) {
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT COUNT(*) FROM testtable;";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "登録数取得エラー: %s\n", sqlite3_errmsg(db));
+        return -1;
+    }
+    int count = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        count = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return count;
+}
+
 int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     sqlite3_stmt *stmt;
     const char *insert_sql =
@@ -104,7 +119,7 @@ int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
 
 int validate_name(const char *name) {
     int len = strlen(name);
-    if (len > 60) {
+    if (len > 20) {  //20文字
         printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
         return 0;
     }
@@ -186,6 +201,14 @@ int main() {
 
     sqlite3 *db = connect_to_database("testmanager.db");
 
+    // 登録可能数の確認
+    int registered_count = get_registered_count(db);
+    if (registered_count >= 1000) {  // 修正: 最大1000人制限
+        printf("エラー: 登録可能な受験者数（最大1000人）を超えました。\n");
+        sqlite3_close(db);
+        return 1;
+    }
+
     char name[100];
     char exam_date_str[9];
     int exam_day;
@@ -227,8 +250,6 @@ int main() {
         sqlite3_close(db);
         return 1;
     }
-
-    int registered_count = 0;
 
     while (1) {
         printf("\n--- 科目一覧 ---\n");
