@@ -33,7 +33,7 @@ int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **),
 /// @brief 構造体
 typedef struct data{
     char name[40];
-    //int day;
+    // int day;
     int exam_day;
     int nLang;
     int math;
@@ -228,7 +228,7 @@ int choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        while(getchar() != '\n') ;
+        while (getchar() != '\n');
 
         if (!validate_date(day)){ // 正常な日付の場合は処理を続行
             return 1;
@@ -237,15 +237,15 @@ int choice1(void){
 
         printf("選択した試験日 %d のデータを取得します...\n", day);
 
-        for (int i = 0; i < NUM_SUBJECT; i++){   // subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++){       // subjectの回数ループ
             isFirstCall = 1;                         // ヘッダーの表示リセット
             top_sort_day(day, 5, subjects[i], text); // 別のクラスで処理
 
             printf("\n");
             if (i != NUM_SUBJECT){
-                printf("%sは以上です。\n",subjects[i]);
+                printf("%sは以上です。\n", subjects[i]);
 
-                while(getchar() != '\n') ; //エンターキー待機
+                while (getchar() != '\n'); // エンターキー待機
             }
         }
 
@@ -294,7 +294,7 @@ int choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        while(getchar() != '\n') ;
+        while (getchar() != '\n');
 
         printf("\n");
 
@@ -302,16 +302,16 @@ int choice1(void){
             return 1;
         }
 
-        for (int i = 0; i < NUM_SUBJECT; i++)        {                                          // subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++){     // subjectの回数ループ
             isFirstCall = 1;                       // ヘッダーのリセット
             under_average(day, subjects[i], text); // 別のクラスで処理
 
-            if (i != NUM_SUBJECT - 1)            {
-                //printf("%sは以上です。\n",subjects[i]);
+            if (i != NUM_SUBJECT - 1){
+                // printf("%sは以上です。\n",subjects[i]);
 
-                while(getchar() != '\n') ; //エンターキー待機
+                while (getchar() != '\n'); // エンターキー待機
             }
-            //printf("\n");
+            // printf("\n");
         }
 
         break;
@@ -333,12 +333,12 @@ int choice1(void){
         break;
     case 6:
         printf("全試験における各科目合計トップ10を表示します\n");
-        while(getchar() != '\n') ;
-        for (int i = 0; i < NUM_SUBJECT; i++)        {                                           // subjectの回数ループ
-            isFirstCall = 1;                        // ヘッダーの表示リセット
-            top_sort(10, subjects[i], text);        // 別のクラスで処理
+        while (getchar() != '\n');
+        for (int i = 0; i < NUM_SUBJECT; i++){  // subjectの回数ループ
+            isFirstCall = 1;                    // ヘッダーの表示リセット
+            top_sort(10, subjects[i], text);    // 別のクラスで処理
 
-            while(getchar() != '\n') ;
+            while (getchar() != '\n');
         }
 
         break;
@@ -353,12 +353,12 @@ int choice1(void){
         break;
     case 8:
         printf("全試験における各科目平均点数を表示します\n");
-        while(getchar() != '\n') ;
-        for (int i = 0; i < NUM_SUBJECT; i++)        {                                           // subjectの回数ループ
-            isFirstCall = 1;                        // ヘッダーの表示リセット
+        while (getchar() != '\n');
+        for (int i = 0; i < NUM_SUBJECT; i++){  // subjectの回数ループ
+            isFirstCall = 1;                    // ヘッダーの表示リセット
             aver_subject(subjects[i], text);
 
-            while(getchar() != '\n') ;
+            while (getchar() != '\n');
         }
 
         break;
@@ -407,13 +407,13 @@ int choice2(void){
     switch (b){
     case 1:
         printf("全試験における各科目平均点数以下の受験者一覧を表示します\n");
-        while(getchar() != '\n') ;
+        while (getchar() != '\n');
 
-        for (int i = 0; i < NUM_SUBJECT; i++)        {                                         // subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++){    // subjectの回数ループ
             isFirstCall = 1;                      // ヘッダーのリセット
             under_average_all(subjects[i], text); // 別のクラスで処理
 
-            while(getchar() != '\n') ;
+            while (getchar() != '\n');
         }
         break;
     case 2:
@@ -516,7 +516,7 @@ int top_sort_sum(int person, char *text){
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
-                 TOTAL_SCORE,TOTAL_SCORE,table_name, person);
+                 TOTAL_SCORE, TOTAL_SCORE, table_name, person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }
@@ -598,7 +598,7 @@ int top_sort_day_sum(int day, int person, char *text){
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
-                 TOTAL_SCORE, TOTAL_SCORE,table_name, day, person);
+                 TOTAL_SCORE, TOTAL_SCORE, table_name, day, person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }
@@ -649,7 +649,7 @@ double aver_sum(char *text){
              " (phys IS NOT NULL) + (chem IS NOT NULL) + (bio IS NOT NULL), 0) AS individual_avg"
              " FROM %s"
              " ) AS avg_per_person;",
-             TOTAL_SCORE,table_name);
+             TOTAL_SCORE, table_name);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
@@ -692,7 +692,7 @@ double aver_day_sum(int day, char *text){
              " FROM %s"
              " WHERE day = %d"
              " ) AS avg_per_person;",
-             TOTAL_SCORE,table_name, day);
+             TOTAL_SCORE, table_name, day);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
@@ -787,7 +787,7 @@ int under_average_sum(int day, char *text){
              " )   "
              " WHERE avg_score <= %f  "
              " ORDER BY avg_score DESC; ",
-             TOTAL_SCORE,table_name, day, average);
+             TOTAL_SCORE, table_name, day, average);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
@@ -953,7 +953,5 @@ int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **),
     return rc;
 }
 
-//#define TOTAL_SCORE "COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + COALESCE(JHist, 0)
+// #define TOTAL_SCORE "COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + COALESCE(JHist, 0)
 //+ COALESCE(wHist, 0) + COALESCE(geo, 0) + COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
-
-
