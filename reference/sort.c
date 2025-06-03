@@ -6,8 +6,8 @@
 /////////////////////////////////
 // 関数宣言
 /////////////////////////////////
-int choice1(void);
-int choice2(void);
+int disp_choice1(void);
+int disp_choice2(void);
 
 int top_sort(int person, char *subject, char *text);
 int top_sort_sum(int person, char *text);
@@ -186,7 +186,7 @@ int main(int argc, char *argv[]){
     printf(" \n");
 
     // 機能選択
-    c = choice1();
+    c = disp_choice1();
 
     // データベースを閉じる
     rc = sqlite3_close(db);
@@ -203,7 +203,7 @@ int main(int argc, char *argv[]){
 ///////////////////////////
 // 選択関数
 ///////////////////////////
-int choice1(void){
+int disp_choice1(void){
 
     int b, c, d, e;
     int day;
@@ -374,7 +374,7 @@ int choice1(void){
         /*printf(" 0)その他の機能\n");
         printf("利用したい機能を半角数字で入力してください:");*/
 
-        return choice2();
+        return disp_choice2();
         break;
 
     default:
@@ -390,7 +390,7 @@ int choice1(void){
     return 0;
 }
 
-int choice2(void){
+int disp_choice2(void){
 
     int b;
     double average;
@@ -435,7 +435,7 @@ int choice2(void){
         break;
     case 0:
 
-        return choice1();
+        return disp_choice1();
 
         break;
 
