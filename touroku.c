@@ -246,22 +246,45 @@ int main() {
             break;
         }
 
-        printf("科目を選択してください（1〜9、終了は0）: ");
-        int sel;
-        if (scanf("%d", &sel) != 1) {
-            fprintf(stderr, "入力エラー\n");
-            sqlite3_close(db);
-            return 1;
+       while (1) {
+    printf("\n--- 科目一覧 ---\n");
+    for (int i = 0; i < SUBJECT_COUNT; i++) {
+        printf(" %d: %s", i + 1, subjects_ja[i]);
+        if (registered[i]) {
+            printf(" [登録済み]");
         }
-        getchar(); // 改行消費
+        printf("\n");
+    }
+    printf("------------------\n");
+
+    if (registered_count >= 5) {
+        printf("最大5科目の登録に達しました。これ以上登録できません。\n");
+        break;
+    }
+
+    while (1) {
+        printf("科目を選択してください（1〜9、終了は0）: ");
+        char input[10]; // 入力バッファ
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("入力エラー：もう一度入力してください。\n");
+            continue; // 再入力を促す
+        }
+
+        // 改行を削除
+        input[strcspn(input, "\n")] = '\0';
+
+        // 数値チェック
+        char *endptr;
+        int sel = strtol(input, &endptr, 10);
+        if (*endptr != '\0' || sel < 0 || sel > 9) {
+            printf("エラー: 0〜9の数字を入力してください。\n");
+            continue; // 再入力を促す
+        }
 
         if (sel == 0) {
-            break;
+            goto end_program; // プログラム終了
         }
-        if (sel < 1 || sel > 9) {
-            printf("1〜9の数字を入力してください。\n");
-            continue;
-        }
+
         int idx = sel - 1;
 
         if (registered[idx]) {
@@ -300,10 +323,10 @@ int main() {
             printf("点数を入力してください（0〜100）: ");
             if (scanf("%d", &score) != 1) {
                 printf("整数を入力してください。\n");
-                while (getchar() != '\n');
+                while (getchar() != '\n'); // 入力バッファをクリア
                 continue;
             }
-            while (getchar() != '\n');
+            while (getchar() != '\n'); // 改行を消費
         } while (!validate_score(score));
 
         scores[idx] = score;
@@ -316,23 +339,24 @@ int main() {
             printf("最大登録科目数に達しました。\n");
             break;
         }
-
-        while (1) {
-    printf("他の科目を登録しますか？（y/n）: ");
-    char yn[10]; // 入力バッファ
-    if (fgets(yn, sizeof(yn), stdin) == NULL) {
-        printf("入力エラー\n");
-        continue; // 再入力を促す
     }
 
-    // 最初の文字で判定
-    if (yn[0] == 'y' || yn[0] == 'Y') {
-        break; // 次の登録に進む
-    } else if (yn[0] == 'n' || yn[0] == 'N') {
-        goto end_program; // プログラム終了
-    } else {
-        printf("エラー: 'y' または 'n' を入力してください。\n");
-    }
+    while (1) {
+        printf("他の科目を登録しますか？（y/n）: ");
+        char yn[10]; // 入力バッファ
+        if (fgets(yn, sizeof(yn), stdin) == NULL) {
+            printf("入力エラー\n");
+            continue; // 再入力を促す
+        }
+
+        // 最初の文字で判定
+        if (yn[0] == 'y' || yn[0] == 'Y') {
+            break; // 次の登録に進む
+        } else if (yn[0] == 'n' || yn[0] == 'N') {
+            goto end_program; // プログラム終了
+        } else {
+            printf("エラー: 'y' または 'n' を入力してください。\n");
+        }
     }
 }
 
