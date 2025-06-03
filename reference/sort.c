@@ -30,7 +30,7 @@ int validate_date(const int date);
 
 int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **), void *callback_data);
 
-/// @brief 構造体
+/// @brief データの構造体
 typedef struct data{
     char name[40];
     // int day;
@@ -46,6 +46,19 @@ typedef struct data{
     int bio;
     int ID;
 } DATA;
+
+/// @brief 関数の構造体
+typedef struct {
+    int isFirstCall;
+
+    sqlite3 *db;
+    char *db_name;
+    char *table_name;
+
+} AppContext;
+
+//構造体の初回呼び出しリセット
+#define RESET_FIRST_CALL(ctx) ((ctx)->isFirstCall = 1)
 
 /// @brief 平均点を返すコールバック関数
 /// @param data
@@ -79,9 +92,10 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 
     // printf("%-20s %-5s %-10s\n", argv[0], argv[1], argv[2]); // データを表示
     //  データがNULLの場合の処理を追加
-    printf("%-25s  %-10s   %-6s \n", argv[0] ? argv[0] : "-",
-           argv[1] ? argv[1] : "-",
-           argv[2] ? argv[2] : "-");
+    printf("%-25s  %-10s   %-6s \n", 
+            argv[0] ? argv[0] : "-",
+            argv[1] ? argv[1] : "-",
+            argv[2] ? argv[2] : "-");
 
     /*for (int i = 0; i < argc; i++) {
         printf("%s = %s\n", colName[i], argv[i] ? argv[i] : "NULL");
