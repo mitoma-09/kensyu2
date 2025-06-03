@@ -1,24 +1,27 @@
 {
-        "version": "0.2.0",
-        "configurations": [
-            {
-                "name": "C/C++: gcc.exe アクティブなファイルをデバッグ",
-                "type": "cppdbg",
-                "request": "launch",
-                "program": "${workspaceFolder}\\main.exe",
-                "args": [],
-                "cwd": "${workspaceFolder}",
-                "environment": [],
-                "externalConsole": true,
-                "MIMode": "gdb",
-                "miDebuggerPath": "C:/Users/Negam/mingw64/bin/gdb.exe",
-                "setupCommands": [
-                    {
-                        "description": "gdb の再フォーマットを有効にする",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    }
-                ]
-            }
-        ]
-    }
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C/C++: gcc アクティブなファイルをデバッグ (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_manager", // コンパイル時の出力ファイル名に合わせて変更
+            "args": [],
+            "stopAtEntry": false, // プログラム開始時にエントリポイントで停止するか (true/false)
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false, // Linuxでは通常false
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", // LinuxでのGDBの一般的なパス
+            "setupCommands": [
+                {
+                    "description": "gdb の再フォーマットを有効にする",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            // プリビルドタスク (デバッグ前に自動でビルドを実行)
+            "preLaunchTask": "MyCustomProjectBuild" // tasks.json で設定したビルドタスクの 'label' と合わせる
+        }
+    ]
+}
