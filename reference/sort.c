@@ -952,7 +952,7 @@ int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **),
     }
     return rc;
 }
-//test
+
 //#define TOTAL_SCORE "COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + COALESCE(JHist, 0)
 //+ COALESCE(wHist, 0) + COALESCE(geo, 0) + COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
 
