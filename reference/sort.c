@@ -30,6 +30,9 @@ int validate_date(const int date);
 
 int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **), void *callback_data);
 
+void display_deviation_scores( char *subject, int day, char *text);
+
+
 /// @brief データの構造体
 typedef struct data{
     char name[40];
@@ -109,7 +112,7 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 // グローバル変数
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
-// #define DEBUG
+ #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
@@ -439,6 +442,13 @@ int disp_choice2(void){
         break;
     case 3:
     case 4:
+
+    int day=20200202;
+    char* subject=subjects[0];
+
+        display_deviation_scores(subject,day,text);
+
+        
     case 5:
     case 6:
     case 7:
@@ -910,6 +920,120 @@ int under_average_sum_all(char *text){
     }*/
 
     return 0;
+}
+
+int center(char *text){
+
+    printf("得点の中央値を表示します。\n");
+
+    // snprintf(text, MAX_SQL_SIZE,
+    //     "WITH ordered_scores AS ("
+    //      "   SELECT score,"
+    //       "         ROW_NUMBER() OVER (ORDER BY score) AS rn,"
+    //        "        COUNT(*) OVER () AS total_count"
+    //       "  FROM pT"
+    //       "  WHERE day = ? AND score IS NOT NULL"
+    //   "    )"
+    //    "   SELECT AVG(score) AS median"
+    //   "    FROM ordered_scores"
+    //      " WHERE rn IN ("
+    //       "  (total_count + 1)/2,"
+    //       "  (total_count + 2)/2"
+    //      " );"
+    //       ,
+    //         text );
+
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
+
+    int rc = execute_sql(text, callback2, 0);
+}
+
+double calc_stddev(const char *subject, int day, char *text){
+    double stddev = 0;
+    // 例：day指定の場合の標準偏差算出クエリ
+    snprintf(text, MAX_SQL_SIZE,
+             "WITH stats AS ("
+             "   SELECT AVG(%s) AS avg_val FROM %s WHERE day = %d AND %s IS NOT NULL"
+             "), stddev_calc AS ("
+             "   SELECT sqrt(AVG((%s - stats.avg_val) * (%s - stats.avg_val))) AS std_dev "
+             "   FROM %s, stats WHERE day = %d AND %s IS NOT NULL"
+             ")"
+             "SELECT std_dev FROM stddev_calc;",
+             subject, table_name, day, subject,
+             subject, subject, table_name, day, subject);
+
+    // execute_sql()を利用してクエリを実行し、stddev を取得する処理を実装
+    // 例えば、callback_avg() を使って結果を得るとする
+    int rc = execute_sql(text, callback_avg, &stddev);
+    return stddev;
+}
+
+double calc_median(const char *subject, int day, char *text){
+    double median = 0;
+    // 例：day指定の場合の中央値取得クエリ（ウィンドウ関数利用）
+    snprintf(text, MAX_SQL_SIZE,
+             "WITH ordered_scores AS ("
+             "  SELECT %s AS score, ROW_NUMBER() OVER (ORDER BY %s) AS rn, "
+             "         COUNT(*) OVER () AS total_count "
+             "  FROM %s WHERE day = %d AND %s IS NOT NULL"
+             ") "
+             "SELECT AVG(score) AS median FROM ordered_scores "
+             "WHERE rn IN ((total_count + 1)/2, (total_count + 2)/2);",
+             subject, subject, table_name, day, subject);
+
+    int rc = execute_sql(text, callback_avg, &median);
+    return median;
+}
+
+void display_deviation_scores(char *subject, int day, char *text){
+    double avg = aver_subject(subject, text); // 既存の平均取得関数
+    double stddev = calc_stddev(subject, day, text);
+
+    printf("%sの偏差値一覧：\n", subject);
+    snprintf(text, MAX_SQL_SIZE,
+             "WITH stats AS ("
+             " SELECT %s AS score,"
+             " SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL) AS avg_val, "
+             "    (SELECT sqrt(AVG((%s - (SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL)) * "
+             "(%s - (SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL)))) AS std_dev "
+             " FROM %s WHERE day = %d AND %s IS NOT NULL "
+             ") "
+             "SELECT name, score, "
+             " CASE WHEN (SELECT std_dev FROM stats) = 0 THEN 50 "
+             "   ELSE 50 + 10 * (score - (SELECT avg_val FROM stats)) / (SELECT std_dev FROM stats) END AS deviation "
+             "FROM %s WHERE day = %d AND %s IS NOT NULL ORDER BY deviation DESC;",
+
+            // " WITH stats AS("
+            // "    SELECT"
+            // "    AVG(nLang) AS avg_val,"
+            // "    sqrt(AVG((nLang - (SELECT AVG(nLang) FROM pT"
+            // "     WHERE day = 20200202 AND nLang IS NOT NULL)) *"
+            // "   (nLang - (SELECT AVG(nLang) FROM pT"
+            // "    WHERE day = 20200202 AND nLang IS NOT NULL)))) AS std_dev"
+            // " FROM pT"
+            // "  WHERE day = 20200202 AND nLang IS NOT NULL)"
+            // "  SELECT"
+            // "  pT.name,"
+            // "  pT.nLang AS score,"
+            // "  CASE"
+            // "    WHEN stats.std_dev = 0 THEN 50 ELSE 50 + 10 * (pT.nLang - stats.avg_val) / "
+            // "    stats.std_dev END AS deviation FROM pT CROSS JOIN stats WHERE pT.day = 20200202 AND pT.nLang IS NOT NULL"
+            // "    ORDER BY deviation DESC;");
+
+             subject, subject, table_name, day, subject,
+             subject, subject, table_name, day, subject,
+             subject, subject, table_name, day, subject,
+             table_name, day, subject,
+             table_name, day, subject);
+
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
+
+    // execute_sql()を用いて、callback2で結果を表示
+    int rc = execute_sql(text, callback2, /*context_data*/ NULL);
 }
 
 ///////////////////////////
