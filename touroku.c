@@ -317,21 +317,28 @@ int main() {
             break;
         }
 
-        printf("他の科目を登録しますか？（y/n）: ");
-        char yn = getchar();
-        while (getchar() != '\n');
-        if (yn != 'y' && yn != 'Y') {
-            break;
-        }
+        while (1) {
+    printf("他の科目を登録しますか？（y/n）: ");
+    char yn[10]; // 入力バッファ
+    if (fgets(yn, sizeof(yn), stdin) == NULL) {
+        printf("入力エラー\n");
+        continue; // 再入力を促す
     }
 
-    int id = register_data(db, name, exam_day, scores);
-    if (id != -1) {
-        printf("登録完了しました。あなたのIDは「%d」 です。\n", id);
-        printf("※IDは他の機能で使います。覚えておきましょう。※\n");
+    // 最初の文字で判定
+    if (yn[0] == 'y' || yn[0] == 'Y') {
+        break; // 次の登録に進む
+    } else if (yn[0] == 'n' || yn[0] == 'N') {
+        goto end_program; // プログラム終了
+    } else {
+        printf("エラー: 'y' または 'n' を入力してください。\n");
     }
+    }
+}
 
-    sqlite3_close(db);
-    printf("プログラム終了\n");
-    return 0;
+// end_program ラベルでプログラムの終了部分にジャンプ
+end_program:
+sqlite3_close(db);
+printf("プログラム終了\n");
+return 0;
 }
