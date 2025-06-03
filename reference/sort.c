@@ -72,14 +72,14 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
     extern int isFirstCall; // 初回かどうかを判定するフラグ
 
     if (isFirstCall){ // カラム名を表示
-        printf("%-15s %-10s %-6s \n", colName[0], colName[1], colName[2]);
+        printf("%-25s %-10s %-6s \n", colName[0], colName[1], colName[2]);
         printf("--------------------------------------------\n"); // 区切り線
         isFirstCall = 0;                                          // フラグを更新
     }
 
     // printf("%-20s %-5s %-10s\n", argv[0], argv[1], argv[2]); // データを表示
     //  データがNULLの場合の処理を追加
-    printf("%-15s  %-10s   %-6s \n", argv[0] ? argv[0] : "-",
+    printf("%-25s  %-10s   %-6s \n", argv[0] ? argv[0] : "-",
            argv[1] ? argv[1] : "-",
            argv[2] ? argv[2] : "-");
 
@@ -121,7 +121,7 @@ char text[MAX_SQL_SIZE]; // SQL文用
 char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
                     "chem", "bio"};
 
-#define subjects_arrays 9
+#define NUM_SUBJECT 9
 
 ///////////////////////////
 // main関数
@@ -237,13 +237,12 @@ int choice1(void){
 
         printf("選択した試験日 %d のデータを取得します...\n", day);
 
-        for (int i = 0; i < subjects_arrays; i++){   // subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++){   // subjectの回数ループ
             isFirstCall = 1;                         // ヘッダーの表示リセット
             top_sort_day(day, 5, subjects[i], text); // 別のクラスで処理
 
             printf("\n");
-            
-            if(i!=subjects_arrays){
+            if (i != NUM_SUBJECT){
                 printf("%sは以上です。\n",subjects[i]);
 
                 while(getchar() != '\n') ; //エンターキー待機
@@ -303,11 +302,11 @@ int choice1(void){
             return 1;
         }
 
-        for (int i = 0; i < subjects_arrays; i++){ // subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++)        {                                          // subjectの回数ループ
             isFirstCall = 1;                       // ヘッダーのリセット
             under_average(day, subjects[i], text); // 別のクラスで処理
 
-            if(i!=subjects_arrays-1){
+            if (i != NUM_SUBJECT - 1)            {
                 //printf("%sは以上です。\n",subjects[i]);
 
                 while(getchar() != '\n') ; //エンターキー待機
@@ -335,7 +334,7 @@ int choice1(void){
     case 6:
         printf("全試験における各科目合計トップ10を表示します\n");
         while(getchar() != '\n') ;
-        for (int i = 0; i < subjects_arrays; i++){  // subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++)        {                                           // subjectの回数ループ
             isFirstCall = 1;                        // ヘッダーの表示リセット
             top_sort(10, subjects[i], text);        // 別のクラスで処理
 
@@ -355,7 +354,7 @@ int choice1(void){
     case 8:
         printf("全試験における各科目平均点数を表示します\n");
         while(getchar() != '\n') ;
-        for (int i = 0; i < subjects_arrays; i++){  // subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++)        {                                           // subjectの回数ループ
             isFirstCall = 1;                        // ヘッダーの表示リセット
             aver_subject(subjects[i], text);
 
@@ -410,7 +409,7 @@ int choice2(void){
         printf("全試験における各科目平均点数以下の受験者一覧を表示します\n");
         while(getchar() != '\n') ;
 
-        for (int i = 0; i < subjects_arrays; i++){// subjectの回数ループ
+        for (int i = 0; i < NUM_SUBJECT; i++)        {                                         // subjectの回数ループ
             isFirstCall = 1;                      // ヘッダーのリセット
             under_average_all(subjects[i], text); // 別のクラスで処理
 
@@ -496,19 +495,28 @@ int top_sort_sum(int person, char *text){
 
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
+                 //  "SELECT * FROM (  SELECT name, day, "
+                 //  "   (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
+                 //  "    COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
+                 //  "    COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score,  "
+                 //  "RANK() OVER (ORDER BY "
+                 //  "    (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
+                 //  "     COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
+                 //  "     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
+                 //  "FROM %s  "
+                 //  ") AS ranked_data  "
+                 //  "WHERE ranking <= %d  "
+                 //  "ORDER BY ranking ASC;",
+                 //  table_name, person);
                  "SELECT * FROM (  SELECT name, day, "
-                 "   (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "    COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "    COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score,  "
+                 "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
-                 "    (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "     COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
+                 "    ( %s) DESC) AS ranking  "
                  "FROM %s  "
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
-                 table_name, person);
+                 TOTAL_SCORE,TOTAL_SCORE,table_name, person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }
@@ -583,18 +591,14 @@ int top_sort_day_sum(int day, int person, char *text){
                  // ,table_name,person);
 
                  "SELECT * FROM (  SELECT name, day, "
-                 "   (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "    COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "    COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score,  "
+                 "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
-                 "    (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 "     COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 "     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
+                 "    ( %s ) DESC) AS ranking  "
                  "FROM %s  WHERE day = %d "
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
-                 table_name, day, person);
+                 TOTAL_SCORE, TOTAL_SCORE,table_name, day, person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }
@@ -616,7 +620,7 @@ double aver_subject(char *subject, char *text){
     double average = 0;
 
     snprintf(text, MAX_SQL_SIZE,
-             "SELECT AVG(NULLIF(%s, 0)) FROM %s WHERE %s IS NOT NULL;",
+             "SELECT AVG( %s ) FROM %s WHERE %s IS NOT NULL;",
              subject, table_name, subject);
 
 #ifdef DEBUG
@@ -639,15 +643,13 @@ double aver_sum(char *text){
              "SELECT SUM(individual_avg) / COUNT(DISTINCT name) AS overall_avg"
              " FROM ("
              " SELECT name, "
-             " CAST((COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) +"
-             " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) +"
-             " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS DOUBLE) / "
+             " CAST(( %s ) AS REAL) / "
              " NULLIF( (nLang IS NOT NULL) + (math IS NOT NULL) + (Eng IS NOT NULL) +"
              " (JHist IS NOT NULL) + (wHist IS NOT NULL) + (geo IS NOT NULL) +"
              " (phys IS NOT NULL) + (chem IS NOT NULL) + (bio IS NOT NULL), 0) AS individual_avg"
              " FROM %s"
              " ) AS avg_per_person;",
-             table_name);
+             TOTAL_SCORE,table_name);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
@@ -683,16 +685,14 @@ double aver_day_sum(int day, char *text){
              "SELECT SUM(individual_avg) / COUNT(DISTINCT name) AS overall_avg"
              " FROM ("
              " SELECT name, "
-             " CAST((COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) +"
-             " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) +"
-             " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS DOUBLE) / "
+             " CAST(( %s ) AS REAL) / "
              " NULLIF( (nLang IS NOT NULL) + (math IS NOT NULL) + (Eng IS NOT NULL) +"
              " (JHist IS NOT NULL) + (wHist IS NOT NULL) + (geo IS NOT NULL) +"
              " (phys IS NOT NULL) + (chem IS NOT NULL) + (bio IS NOT NULL), 0) AS individual_avg"
              " FROM %s"
              " WHERE day = %d"
              " ) AS avg_per_person;",
-             table_name, day);
+             TOTAL_SCORE,table_name, day);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
@@ -712,7 +712,7 @@ int under_average(int day, char *subject, char *text){
     double average = 0;
 
     snprintf(text, MAX_SQL_SIZE,
-             "SELECT AVG(NULLIF(%s, 0)) FROM %s WHERE day = %d AND %s IS NOT NULL;",
+             "SELECT AVG( %s ) FROM %s WHERE day = %d AND %s IS NOT NULL;",
              subject, table_name, day, subject);
 
     // SQLを実行して平均点を取得
@@ -723,7 +723,7 @@ int under_average(int day, char *subject, char *text){
 
     snprintf(text, MAX_SQL_SIZE,
              "WITH subject_avg AS ( "
-             "    SELECT AVG(COALESCE(%s, 0)) AS avg_score "
+             "    SELECT AVG( %s ) AS avg_score "
              "    FROM %s "
              "    WHERE day = %d  AND %s IS NOT NULL"
              " ) "
@@ -779,9 +779,7 @@ int under_average_sum(int day, char *text){
              // ,table_name,person);
 
              "SELECT * FROM (  SELECT name, day, "
-             "  CAST( SUM(COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-             "       COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-             "       COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0))  AS DOUBLE)/ "
+             "  CAST( SUM( %s )  AS REAL)/ "
              "  NULLIF( (COUNT(nLang) + COUNT(math) + COUNT(Eng) + COUNT(JHist) + "
              "    COUNT(wHist) + COUNT(geo) + COUNT(phys) + COUNT(chem) + COUNT(bio)) ,0)"
              "   AS avg_score  "
@@ -789,7 +787,7 @@ int under_average_sum(int day, char *text){
              " )   "
              " WHERE avg_score <= %f  "
              " ORDER BY avg_score DESC; ",
-             table_name, day, average);
+             TOTAL_SCORE,table_name, day, average);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
@@ -808,7 +806,7 @@ int under_average_all(char *subject, char *text){
     double average = 0;
 
     snprintf(text, MAX_SQL_SIZE,
-             "SELECT AVG(NULLIF(%s, 0)) FROM %s WHERE %s IS NOT NULL;",
+             "SELECT AVG( %s ) FROM %s WHERE %s IS NOT NULL;",
              subject, table_name, subject);
 
     // SQLを実行して平均点を取得
@@ -819,7 +817,7 @@ int under_average_all(char *subject, char *text){
 
     snprintf(text, MAX_SQL_SIZE,
              "WITH subject_avg AS ( "
-             "    SELECT AVG(COALESCE(%s, 0)) AS avg_score "
+             "    SELECT AVG( %s ) AS avg_score "
              "    FROM %s "
              "    WHERE  %s IS NOT NULL"
              " ) "
@@ -873,9 +871,7 @@ int under_average_sum_all(char *text){
              // ,table_name,person);
 
              "SELECT * FROM (  SELECT name, day, "
-             "  CAST( SUM(COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-             "       COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-             "       COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0))  AS DOUBLE)/ "
+             "  CAST( SUM( %s )  AS REAL)/ "
              "  NULLIF( (COUNT(nLang) + COUNT(math) + COUNT(Eng) + COUNT(JHist) + "
              "    COUNT(wHist) + COUNT(geo) + COUNT(phys) + COUNT(chem) + COUNT(bio)) ,0)"
              "   AS avg_score  "
@@ -883,7 +879,7 @@ int under_average_sum_all(char *text){
              " )   "
              " WHERE avg_score <= %f  "
              " ORDER BY avg_score DESC; ",
-             table_name, average);
+             TOTAL_SCORE, table_name, average);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
