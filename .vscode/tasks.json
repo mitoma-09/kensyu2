@@ -2,21 +2,21 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cppbuild",
-            "label": "MyCustomProjectBuild", // ★ユニークな名前に変更
-            "command": "C:/Users/Negam/mingw64/bin/gcc.exe",
+            "type": "shell", // ★ここを "shell" に変更 (cppbuild は VSCode の C/C++ 拡張の機能で、通常自動生成されるもの)
+            "label": "MyCustomProjectBuild",
+            "command": "gcc", // ★Linux の gcc コマンド名に修正 (パスは不要)
             "args": [
-                "${workspaceFolder}\\main.c",
-                "${workspaceFolder}\\db_operations.c",
+                "main.c",          // ★パスの区切りをスラッシュに変更、または相対パスとして指定 (workspaceFolder は自動で現在のディレクトリになる)
+                "db_operations.c",
+                "data_validation.c", // もし含まれていなければ追加
+                "subject_utils.c",   // もし含まれていなければ追加
                 "-o",
-                "${workspaceFolder}\\main.exe",
-                "-I",
-                "C:/Users/Negam/mingw64/include", // MinGWのSQLiteヘッダーがあるパス
-                "-L",
-                "C:/Users/Negam/SQLite/SQLite-lib", // あなたがSQLiteライブラリを置いているパス
-                "-lsqlite3",
-                "-fexec-charset=UTF-8",
-                "-finput-charset=UTF-8"
+                "test_manager",    // ★出力ファイル名を Linux 形式に修正 (拡張子.exeは不要)
+                "-lsqlite3",       // SQLite3 ライブラリのリンク
+                "-g"               // デバッグ情報を含める（デバッグに必須）
+                // ★Windows 特有のパス (-I C:/... -L C:/...) は全て削除★
+                // Linux の gcc は標準でシステム上のインクルードパスやライブラリパスを認識します。
+                // もし必要であれば、Linux 上の実際のパス (例: -I/usr/include/sqlite3) を指定。
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -28,7 +28,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "カスタムビルドタスク" // 説明を追加
+            "detail": "C言語プロジェクトのビルドタスク (Linux用)"
         }
     ]
 }
