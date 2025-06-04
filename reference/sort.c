@@ -16,11 +16,10 @@ int top_sort_day(int day, int person, char *subject, char *text);
 int top_sort_day_sum(int day, int person, char *text);
 
 double calc_subject_average(const char *subject, int day, char *text);
+double calc_average(int day,char *text);
 
-double aver_subject(char *subject, char *text);
-double aver_sum(char *text);
-
-double aver_day_sum(int day, char *text);
+//double aver_sum(char *text);
+//double aver_day_sum(int day, char *text);
 
 int under_average(int day, char *subject, char *text);
 int under_average_sum(int day, char *text);
@@ -115,7 +114,7 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
 
- #define DEBUG
+// #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
@@ -305,7 +304,7 @@ int disp_choice1(void){
 
         isFirstCall = 1;
         printf("%dの日付について全科目の平均点を表示します。\n", day);
-        average = aver_day_sum(day, text); // 別のクラスで計算
+        average = calc_average(day, text); // 別のクラスで計算
         printf("全科目の平均点は%.1fです\n", average);
 
         printf("\n");
@@ -387,7 +386,7 @@ int disp_choice1(void){
         break;
     case 9:
         printf("全試験における全科目平均点数を表示します\n");
-        average = aver_sum(text); // 別のクラスで計算
+        average = calc_average(0,text); // 別のクラスで計算
         printf("全科目の平均点は%.1fです\n", average);
 
         printf("\n");
@@ -642,9 +641,9 @@ int top_sort_day_sum(int day, int person, char *text){
 }
 
 /// @brief 特定の科目の平均点を算出するヘルパー関数
-/// @param table_name 使用するテーブル名
 /// @param subject    科目名（列名）
 /// @param day        日付を指定する場合はその値、全体の平均を求めるなら0を指定
+/// @param text     
 /// @return 平均点（エラー時にはマイナス値を返すなど、エラー処理は適宜実装）
 double calc_subject_average(const char *subject, int day, char *text){
     double average = 0.0;
@@ -671,29 +670,45 @@ double calc_subject_average(const char *subject, int day, char *text){
 
     return average;
 }
-/*/// @brief 科目平均点検索・表示
-/// @param subject 科目
-/// @param text
-/// @return 平均点(少数第二位四捨五入)
-double aver_subject(char *subject, char *text){
-    double average = 0;
 
+/// @brief 全体の平均点を算出するヘルパー関数
+/// @param day 日付(指定しない場合は0)
+/// @param text 
+/// @return 
+double calc_average(int day, char *text){
+    double average = 0.0;
+    char where_clauses[100] = "";
+
+    if (day > 0){
+        snprintf(where_clauses, sizeof(where_clauses), " WHERE day = %d", day);
+    }
     snprintf(text, MAX_SQL_SIZE,
-             "SELECT AVG( %s ) FROM %s WHERE %s IS NOT NULL;",
-             subject, table_name, subject);
+            "SELECT SUM(individual_avg) / COUNT(DISTINCT name) AS overall_avg"
+            " FROM ("
+            " SELECT name, "
+            " CAST(( %s ) AS REAL) / "
+            " NULLIF( (nLang IS NOT NULL) + (math IS NOT NULL) + (Eng IS NOT NULL) +"
+            " (JHist IS NOT NULL) + (wHist IS NOT NULL) + (geo IS NOT NULL) +"
+            " (phys IS NOT NULL) + (chem IS NOT NULL) + (bio IS NOT NULL), 0) AS individual_avg"
+            " FROM %s"
+            " %s "
+            " ) AS avg_per_person;",
+            TOTAL_SCORE, table_name, where_clauses);
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
 #endif
 
     int rc = execute_sql(text, callback_avg, &average);
+    if (rc != SQLITE_OK){
+        fprintf(stderr, "全体平均点の計算に失敗しました。\n");
+        return -1;
+    }
 
-    printf("%sの全日通した平均点は %.1f 点です。\n", subject, average);
-    return average;
+    return average; // 平均値を戻り値
 }
-*/
 
-/// @brief 全体平均点検索
+/*/// @brief 全体平均点検索
 /// @param text
 /// @return 全体平均点(少数第二位四捨五入)
 double aver_sum(char *text){
@@ -730,16 +745,16 @@ double aver_day_sum(int day, char *text){
     // printf("%dの日付について全科目の平均点を表示します。\n",day);
 
     // 受験者ごとの平均点を求めるSQL
-    /*snprintf(text, MAX_SQL_SIZE,
-    "SELECT name, day, "
-    "   SUM(COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-    "       COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-    "       COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) / "
-    "   (COUNT(nLang) + COUNT(math) + COUNT(Eng) + COUNT(JHist) + "
-    "    COUNT(wHist) + COUNT(geo) + COUNT(phys) + COUNT(chem) + COUNT(bio)) "
-    "   AS avg_score  "
-    "FROM %s WHERE day = %d GROUP BY name, day;"
-    ,table_name,day);*/
+        // snprintf(text, MAX_SQL_SIZE,
+        // "SELECT name, day, "
+        // "   SUM(COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
+        // "       COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
+        // "       COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) / "
+        // "   (COUNT(nLang) + COUNT(math) + COUNT(Eng) + COUNT(JHist) + "
+        // "    COUNT(wHist) + COUNT(geo) + COUNT(phys) + COUNT(chem) + COUNT(bio)) "
+        // "   AS avg_score  "
+        // "FROM %s WHERE day = %d GROUP BY name, day;"
+        // ,table_name,day);
 
     snprintf(text, MAX_SQL_SIZE,
              "SELECT SUM(individual_avg) / COUNT(DISTINCT name) AS overall_avg"
@@ -762,7 +777,7 @@ double aver_day_sum(int day, char *text){
 
     return average; // 全員の得点の平均値を戻り値
 }
-
+*/
 /// @brief 日程ごとの科目平均点以下生徒検索
 /// @param day 日程検索
 /// @param subject 科目
@@ -809,7 +824,7 @@ int under_average(int day, char *subject, char *text){
 /// @param text
 /// @return
 int under_average_sum(int day, char *text){
-    double average = aver_day_sum(day, text);
+    double average = calc_average(day, text);
 
     // printf("試験実施日毎の全科目平均点数以下の受験者一覧を表示します\n");
 
@@ -903,7 +918,7 @@ int under_average_all(char *subject, char *text){
 /// @return
 int under_average_sum_all(char *text){
 
-    double average = aver_sum(text);
+    double average = calc_average(0,text);
 
     printf("全体の平均点は%.1f点です。\n", average);
     printf("全体の得点が平均点以下の生徒を表示します。\n");
