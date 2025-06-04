@@ -15,6 +15,8 @@ int top_sort_sum(int person, char *text);
 int top_sort_day(int day, int person, char *subject, char *text);
 int top_sort_day_sum(int day, int person, char *text);
 
+double calc_subject_average(const char *subject, int day, char *text);
+
 double aver_subject(char *subject, char *text);
 double aver_sum(char *text);
 
@@ -112,6 +114,7 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 // グローバル変数
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
+
  #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
@@ -119,6 +122,8 @@ int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 #define TOTAL_SCORE "COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + \
                      COALESCE(JHist, 0)+ COALESCE(wHist, 0) + COALESCE(geo, 0) + \
                      COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
+
+#define CLEAR_INPUT_BUFFER() while (getchar() != '\n') //エンターキー待機
 
 sqlite3_stmt *stmt_select; // 検索 用　
 sqlite3_stmt *stmt_insert; // 挿入 用
@@ -138,7 +143,7 @@ char text[MAX_SQL_SIZE]; // SQL文用
 char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
                     "chem", "bio"};
 
-#define NUM_SUBJECT 9
+#define NUM_SUBJECT 9 //教科数
 
 ///////////////////////////
 // main関数
@@ -245,7 +250,7 @@ int disp_choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        while (getchar() != '\n');
+        CLEAR_INPUT_BUFFER();
 
         if (!validate_date(day)){ // 正常な日付の場合は処理を続行
             return 1;
@@ -262,7 +267,7 @@ int disp_choice1(void){
             if (i != NUM_SUBJECT){
                 printf("%sは以上です。\n", subjects[i]);
 
-                while (getchar() != '\n'); // エンターキー待機
+                CLEAR_INPUT_BUFFER();// エンターキー待機
             }
         }
 
@@ -311,7 +316,7 @@ int disp_choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        while (getchar() != '\n');
+        CLEAR_INPUT_BUFFER();
 
         printf("\n");
 
@@ -326,7 +331,7 @@ int disp_choice1(void){
             if (i != NUM_SUBJECT - 1){
                 // printf("%sは以上です。\n",subjects[i]);
 
-                while (getchar() != '\n'); // エンターキー待機
+                CLEAR_INPUT_BUFFER(); // エンターキー待機
             }
             // printf("\n");
         }
@@ -350,12 +355,12 @@ int disp_choice1(void){
         break;
     case 6:
         printf("全試験における各科目合計トップ10を表示します\n");
-        while (getchar() != '\n');
+        CLEAR_INPUT_BUFFER();
         for (int i = 0; i < NUM_SUBJECT; i++){  // subjectの回数ループ
             isFirstCall = 1;                    // ヘッダーの表示リセット
             top_sort(10, subjects[i], text);    // 別のクラスで処理
 
-            while (getchar() != '\n');
+            CLEAR_INPUT_BUFFER();
         }
 
         break;
@@ -370,12 +375,13 @@ int disp_choice1(void){
         break;
     case 8:
         printf("全試験における各科目平均点数を表示します\n");
-        while (getchar() != '\n');
+        CLEAR_INPUT_BUFFER();
         for (int i = 0; i < NUM_SUBJECT; i++){ // subjectの回数ループ
             isFirstCall = 1;                   // ヘッダーの表示リセット
-            aver_subject(subjects[i], text);
+            average = calc_subject_average(subjects[i],0,text);
+            printf("%sの平均点は%.1fです\n",subjects[i],average);
 
-            while (getchar() != '\n');
+            CLEAR_INPUT_BUFFER();
         }
 
         break;
@@ -424,13 +430,12 @@ int disp_choice2(void){
     switch (b){
     case 1:
         printf("全試験における各科目平均点数以下の受験者一覧を表示します\n");
-        while (getchar() != '\n');
-
+        CLEAR_INPUT_BUFFER();
         for (int i = 0; i < NUM_SUBJECT; i++){    // subjectの回数ループ
             isFirstCall = 1;                      // ヘッダーのリセット
             under_average_all(subjects[i], text); // 別のクラスで処理
 
-            while (getchar() != '\n');
+            CLEAR_INPUT_BUFFER();
         }
         break;
     case 2:
@@ -636,7 +641,37 @@ int top_sort_day_sum(int day, int person, char *text){
     return 0;
 }
 
-/// @brief 科目平均点検索・表示
+/// @brief 特定の科目の平均点を算出するヘルパー関数
+/// @param table_name 使用するテーブル名
+/// @param subject    科目名（列名）
+/// @param day        日付を指定する場合はその値、全体の平均を求めるなら0を指定
+/// @return 平均点（エラー時にはマイナス値を返すなど、エラー処理は適宜実装）
+double calc_subject_average(const char *subject, int day, char *text){
+    double average = 0.0;
+
+    if (day > 0){   //日付ごと
+        snprintf(text, MAX_SQL_SIZE,
+                 "SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL;",
+                 subject, table_name, day, subject);
+    }else{          //全体
+        snprintf(text, MAX_SQL_SIZE,
+                 "SELECT AVG(%s) FROM %s WHERE %s IS NOT NULL;",
+                 subject, table_name, subject);
+    }
+
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
+
+    int rc = execute_sql(text, callback_avg, &average);
+    if (rc != SQLITE_OK){
+        fprintf(stderr, "平均点の計算に失敗しました。\n");
+        return -1; // エラー時はマイナス値など、適切なエラーコードを返す
+    }
+
+    return average;
+}
+/*/// @brief 科目平均点検索・表示
 /// @param subject 科目
 /// @param text
 /// @return 平均点(少数第二位四捨五入)
@@ -656,6 +691,7 @@ double aver_subject(char *subject, char *text){
     printf("%sの全日通した平均点は %.1f 点です。\n", subject, average);
     return average;
 }
+*/
 
 /// @brief 全体平均点検索
 /// @param text
@@ -733,14 +769,7 @@ double aver_day_sum(int day, char *text){
 /// @param text
 /// @return
 int under_average(int day, char *subject, char *text){
-    double average = 0;
-
-    snprintf(text, MAX_SQL_SIZE,
-             "SELECT AVG( %s ) FROM %s WHERE day = %d AND %s IS NOT NULL;",
-             subject, table_name, day, subject);
-
-    // SQLを実行して平均点を取得
-    int rc = execute_sql(text, callback_avg, &average);
+    double average = calc_subject_average(subject,day,text);
 
     printf("%sの平均点は%.1f点です。\n", subject, average);
     printf("%sの得点が平均点以下の生徒を表示します。\n", subject);
@@ -770,7 +799,7 @@ int under_average(int day, char *subject, char *text){
     printf("実行するSQL: %s\n", text);
 #endif
 
-    rc = execute_sql(text, callback2, 0);
+    int rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
@@ -827,14 +856,14 @@ int under_average_sum(int day, char *text){
 /// @param text
 /// @return
 int under_average_all(char *subject, char *text){
-    double average = 0;
+    double average = calc_subject_average(subject,0,text);
 
-    snprintf(text, MAX_SQL_SIZE,
+    /*snprintf(text, MAX_SQL_SIZE,
              "SELECT AVG( %s ) FROM %s WHERE %s IS NOT NULL;",
              subject, table_name, subject);
 
     // SQLを実行して平均点を取得
-    int rc = execute_sql(text, callback_avg, &average);
+    int rc = execute_sql(text, callback_avg, &average);*/
 
     printf("%sの平均点は%.1f点です。\n", subject, average);
     printf("%sの得点が平均点以下の生徒を表示します。\n", subject);
@@ -864,7 +893,7 @@ int under_average_all(char *subject, char *text){
     printf("実行するSQL: %s\n", text);
 #endif
 
-    rc = execute_sql(text, callback2, 0);
+    int rc = execute_sql(text, callback2, 0);
 
     return 0;
 }
@@ -988,7 +1017,7 @@ double calc_median(const char *subject, int day, char *text){
 }
 
 void display_deviation_scores(char *subject, int day, char *text){
-    double avg = aver_subject(subject, text); // 既存の平均取得関数
+    double avg =calc_subject_average(subject,0,text); // 既存の平均取得関数
     double stddev = calc_stddev(subject, day, text);
 
     printf("%sの偏差値一覧：\n", subject);
