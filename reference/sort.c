@@ -993,17 +993,35 @@ void display_deviation_scores(char *subject, int day, char *text){
 
     printf("%sの偏差値一覧：\n", subject);
     snprintf(text, MAX_SQL_SIZE,
+             //"WITH stats AS ("
+             //" SELECT %s AS score,"
+             //" SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL) AS avg_val, "
+             //"    (SELECT sqrt(AVG((%s - (SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL)) * "
+             //"(%s - (SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL)))) AS std_dev "
+             //" FROM %s WHERE day = %d AND %s IS NOT NULL "
+             //") "
+             //"SELECT name, score, "
+             //" CASE WHEN (SELECT std_dev FROM stats) = 0 THEN 50 "
+             //"   ELSE 50 + 10 * (score - (SELECT avg_val FROM stats)) / (SELECT std_dev FROM stats) END AS deviation "
+             //"FROM %s WHERE day = %d AND %s IS NOT NULL ORDER BY deviation DESC;",
+
              "WITH stats AS ("
-             " SELECT %s AS score,"
-             " SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL) AS avg_val, "
-             "    (SELECT sqrt(AVG((%s - (SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL)) * "
-             "(%s - (SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL)))) AS std_dev "
-             " FROM %s WHERE day = %d AND %s IS NOT NULL "
+             " SELECT "
+             "  AVG( %s ) AS avg_val, "
+             "  sqrt(AVG(( %s - AVG( %s )) * ( %s - AVG( %s )))) AS std_dev "
+             " FROM %s  WHERE day = %d AND %s IS NOT NULL "
              ") "
-             "SELECT name, score, "
-             " CASE WHEN (SELECT std_dev FROM stats) = 0 THEN 50 "
-             "   ELSE 50 + 10 * (score - (SELECT avg_val FROM stats)) / (SELECT std_dev FROM stats) END AS deviation "
-             "FROM %s WHERE day = %d AND %s IS NOT NULL ORDER BY deviation DESC;",
+             "SELECT"
+             " %s.name, "
+             " %s.%s AS score,"
+             " CASE "
+             "  WHEN stats.std_dev = 0 THEN 50"
+             "  ELSE 50 + 10 * (%s.%s - stats.avg_val) / stas.std_dev"
+             " END AS deviation "
+             "FROM %s "
+             "CROSS JOIN stats "
+             "WHERE %s.day = %d AND %s.%s IS NOT NULL "
+             "ORDER BY deviation DESC",
 
             // " WITH stats AS("
             // "    SELECT"
@@ -1021,12 +1039,17 @@ void display_deviation_scores(char *subject, int day, char *text){
             // "    WHEN stats.std_dev = 0 THEN 50 ELSE 50 + 10 * (pT.nLang - stats.avg_val) / "
             // "    stats.std_dev END AS deviation FROM pT CROSS JOIN stats WHERE pT.day = 20200202 AND pT.nLang IS NOT NULL"
             // "    ORDER BY deviation DESC;");
+             subject,subject,subject,subject,subject,
+             table_name,day,subject,
+             table_name,table_name,subject,table_name,subject,
+             table_name,table_name,day,table_name,subject
 
-             subject, subject, table_name, day, subject,
-             subject, subject, table_name, day, subject,
-             subject, subject, table_name, day, subject,
-             table_name, day, subject,
-             table_name, day, subject);
+             //subject, subject, table_name, day, subject,
+             //subject, subject, table_name, day, subject,
+             //subject, subject, table_name, day, subject,
+             //table_name, day, subject,
+             //table_name, day, subject
+             );
 
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
