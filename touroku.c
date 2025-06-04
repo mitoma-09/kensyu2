@@ -106,6 +106,7 @@ int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     int result = sqlite3_step(stmt);
     if (result == SQLITE_DONE) {
         printf("データが正常に登録されました。\n");
+        printf("※ 登録内容の修正が必要な場合は、変更機能をご利用ください。\n");
     } else {
         fprintf(stderr, "データ登録に失敗しました: %s\n", sqlite3_errmsg(db));
         sqlite3_finalize(stmt);
@@ -294,6 +295,7 @@ int main() {
         }
 
         printf("科目を選択してください（1〜9、終了は0）: ");
+        printf("※ 登録後の修正は、別の変更機能を利用してください。\n");
         char input[10];
         if (fgets(input, sizeof(input), stdin) == NULL) {
             printf("入力エラー：もう一度入力してください。\n");
