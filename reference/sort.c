@@ -2,6 +2,7 @@
 #include <sqlite3.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 /////////////////////////////////
 // 関数宣言
@@ -33,9 +34,11 @@ int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **),
 
 void display_deviation_scores( char *subject, int day, char *text);
 
+double calc_subject_std(const char *subject, int day, char *text);
 
 /// @brief データの構造体
-typedef struct data{
+typedef struct data
+{
     char name[40];
     // int day;
     int exam_day;
@@ -110,7 +113,7 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 }
 
 ////////////////////////////
-// グローバル変数
+// グローバル変数・マクロ
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
 
@@ -873,13 +876,6 @@ int under_average_sum(int day, char *text){
 int under_average_all(char *subject, char *text){
     double average = calc_subject_average(subject,0,text);
 
-    /*snprintf(text, MAX_SQL_SIZE,
-             "SELECT AVG( %s ) FROM %s WHERE %s IS NOT NULL;",
-             subject, table_name, subject);
-
-    // SQLを実行して平均点を取得
-    int rc = execute_sql(text, callback_avg, &average);*/
-
     printf("%sの平均点は%.1f点です。\n", subject, average);
     printf("%sの得点が平均点以下の生徒を表示します。\n", subject);
 
@@ -1101,6 +1097,45 @@ void display_deviation_scores(char *subject, int day, char *text){
 
     // execute_sql()を用いて、callback2で結果を表示
     int rc = execute_sql(text, callback2, /*context_data*/ NULL);
+}
+
+///@brief 指定された科目・日付ごとの標準偏差を算出するヘルパー関数
+///@param subject 科目名（列名）
+///@param day     日付を指定する場合はその値、全体の計算なら0
+///@param text    SQL文バッファ
+///@return 標準偏差（エラーの場合は-1を返す）
+double calc_subject_std(const char *subject, int day, char *text){
+    double avg = calc_subject_average(subject, day, text);
+    if (avg < 0){
+        // 平均値の計算に失敗している場合はエラー扱い
+        return -1;
+    }
+    double avg_sq = 0.0;
+
+    if (day > 0){
+        snprintf(text, MAX_SQL_SIZE,
+                 "SELECT AVG((%s) * (%s)) FROM %s WHERE day = %d AND %s IS NOT NULL;",
+                 subject, subject, table_name, day, subject);
+    }else{
+        snprintf(text, MAX_SQL_SIZE,
+                 "SELECT AVG((%s) * (%s)) FROM %s WHERE %s IS NOT NULL;",
+                 subject, subject, table_name, subject);
+    }
+#ifdef DEBUG
+    DEBUG_PRINT("Executing SQL for std dev: %s", text);
+#endif
+    int rc = execute_sql(text, callback_avg, &avg_sq);
+    if (rc != SQLITE_OK){
+        fprintf(stderr, "標準偏差の計算に失敗しました。\n");
+        return -1;
+    }
+    // 分散 = AVG(score^2) - (AVG(score))^2, 標準偏差はその平方根
+    double variance = avg_sq - (avg * avg);
+    if (variance < 0){
+        variance = 0; // 浮動小数点の丸め誤差対策
+    }
+    double std = sqrt(variance);
+    return std;
 }
 
 ///////////////////////////
