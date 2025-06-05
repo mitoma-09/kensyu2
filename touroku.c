@@ -3,6 +3,8 @@
 #include <string.h>
 #include <locale.h>
 #include <sqlite3.h>
+#include <wchar.h>
+#include <ctype.h>
 
 #define SUBJECT_COUNT 9
 
@@ -103,6 +105,7 @@ int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     int result = sqlite3_step(stmt);
     if (result == SQLITE_DONE) {
         printf("データが正常に登録されました。\n");
+        printf("※ 登録内容の修正が必要な場合は、変更機能をご利用ください。\n");
     } else {
         fprintf(stderr, "データ登録に失敗しました: %s\n", sqlite3_errmsg(db));
         sqlite3_finalize(stmt);
@@ -115,33 +118,52 @@ int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     return id;
 }
 
-// --- バリデーション関数 ---
-
 int validate_name(const char *name) {
-    int len = strlen(name);
-    if (len > 20) {  //20文字
+    size_t len = strlen(name);
+
+    // 文字数チェック
+    if (len > 60) { // UTF-8エンコーディングで全角カタカナは最大3バイトなので、20文字は60バイト以内
         printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
         return 0;
     }
-    const unsigned char *p = (const unsigned char *)name;
-    while (*p) {
-        if (*p < 0x80) {
-            printf("エラー: 名前は全角カタカナで入力してください。\n");
+
+    // 全角カタカナのみを許可
+    wchar_t wc;
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+    const char *ptr = name;
+    size_t mblen;
+
+    while (*ptr) {
+        mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
+        if (mblen == (size_t)-1 || mblen == (size_t)-2) {
+            printf("エラー: 無効な文字が含まれています。\n");
             return 0;
-        } else if ((*p & 0xF0) == 0xE0) {
-            unsigned int codepoint = ((p[0] & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F);
-            if (!((codepoint >= 0x30A0 && codepoint <= 0x30FF) || codepoint == 0x30FC)) {
-                printf("エラー: 名前は全角カタカナで入力してください。\n");
-                return 0;
-            }
-            p += 3;
-        } else {
+        }
+
+        // 全角カタカナまたは長音符かどうか
+        if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
             printf("エラー: 名前は全角カタカナで入力してください。\n");
             return 0;
         }
+        ptr += mblen;
     }
+
     return 1;
 }
+
+void trim_input(char *str) {
+    char *end;
+
+    // 前後のスペース削除
+    while (isspace((unsigned char)*str)) str++;
+    if (*str == 0) return;
+
+    end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end)) end--;
+
+    *(end + 1) = '\0';
+    }
 
 int validate_date(const char *date) {
     if (strlen(date) != 8 || strspn(date, "0123456789") != 8) {
@@ -201,35 +223,39 @@ int main() {
 
     sqlite3 *db = connect_to_database("testmanager.db");
 
-    // 登録可能数の確認
+    // 登録可能な受験者数を確認
     int registered_count = get_registered_count(db);
-    if (registered_count >= 1000) {  // 修正: 最大1000人制限
+    if (registered_count >= 1000) {
         printf("エラー: 登録可能な受験者数（最大1000人）を超えました。\n");
         sqlite3_close(db);
         return 1;
     }
 
-    char name[100];
+    char name[61];
     char exam_date_str[9];
     int exam_day;
     int scores[SUBJECT_COUNT];
     int registered[SUBJECT_COUNT] = {0};
 
-    // 点数初期化：-1は未入力
-    for (int i = 0; i < SUBJECT_COUNT; i++) {
-        scores[i] = -1;
-    }
+    int registered_subject_count = 0;
 
-    // 名前入力（全角カタカナ）
-    do {
-        printf("名前を全角カタカナで入力してください（20文字以内）: ");
-        if (fgets(name, sizeof(name), stdin) == NULL) {
-            fprintf(stderr, "名前入力エラー\n");
-            sqlite3_close(db);
-            return 1;
-        }
-        name[strcspn(name, "\n")] = '\0';
-    } while (!validate_name(name));
+
+    // 名前入力
+    while (1) {
+    printf("名前を全角カタカナで入力してください（20文字以内）: ");
+    fgets(name, sizeof(name), stdin);
+
+    // 改行文字を削除
+    name[strcspn(name, "\n")] = '\0';
+
+    // トリム処理
+    trim_input(name);
+
+    // 名前検証
+    if (validate_name(name)) {
+        break;
+    }
+}
 
     // 試験日入力
     do {
@@ -239,7 +265,7 @@ int main() {
             sqlite3_close(db);
             return 1;
         }
-        getchar(); // 改行消費
+        getchar();
     } while (!validate_date(exam_date_str));
 
     exam_day = atoi(exam_date_str);
@@ -250,7 +276,7 @@ int main() {
         sqlite3_close(db);
         return 1;
     }
-
+    
     while (1) {
         printf("\n--- 科目一覧 ---\n");
         for (int i = 0; i < SUBJECT_COUNT; i++) {
@@ -262,49 +288,29 @@ int main() {
         }
         printf("------------------\n");
 
-        if (registered_count >= 5) {
+        if (registered_subject_count >= 5) {
             printf("最大5科目の登録に達しました。これ以上登録できません。\n");
             break;
         }
-    }
 
-       while (1) {
-    printf("\n--- 科目一覧 ---\n");
-    for (int i = 0; i < SUBJECT_COUNT; i++) {
-        printf(" %d: %s", i + 1, subjects_ja[i]);
-        if (registered[i]) {
-            printf(" [登録済み]");
-        }
-        printf("\n");
-    }
-    printf("------------------\n");
-
-    if (registered_count >= 5) {
-        printf("最大5科目の登録に達しました。これ以上登録できません。\n");
-        break;
-    }
-
-    while (1) {
         printf("科目を選択してください（1〜9、終了は0）: ");
-        char input[10]; // 入力バッファ
+        printf("※ 登録後の修正は、別の変更機能を利用してください。\n");
+        char input[10];
         if (fgets(input, sizeof(input), stdin) == NULL) {
             printf("入力エラー：もう一度入力してください。\n");
-            continue; // 再入力を促す
+            continue;
         }
-
-        // 改行を削除
         input[strcspn(input, "\n")] = '\0';
 
-        // 数値チェック
         char *endptr;
         int sel = strtol(input, &endptr, 10);
         if (*endptr != '\0' || sel < 0 || sel > 9) {
             printf("エラー: 0〜9の数字を入力してください。\n");
-            continue; // 再入力を促す
+            continue;
         }
 
         if (sel == 0) {
-            goto end_program; // プログラム終了
+            break; // 登録終了
         }
 
         int idx = sel - 1;
@@ -314,7 +320,7 @@ int main() {
             continue;
         }
 
-        // 文系科目は一つだけ
+        // 文系科目は1つだけ
         int is_liberal = 0;
         for (int i = 0; i < 3; i++) {
             if (idx == liberal_indices[i]) {
@@ -327,7 +333,7 @@ int main() {
             continue;
         }
 
-        // 理系科目は一つだけ
+        // 理系科目は1つだけ
         int is_science = 0;
         for (int i = 0; i < 3; i++) {
             if (idx == science_indices[i]) {
@@ -345,46 +351,57 @@ int main() {
             printf("点数を入力してください（0〜100）: ");
             if (scanf("%d", &score) != 1) {
                 printf("整数を入力してください。\n");
-                while (getchar() != '\n'); // 入力バッファをクリア
+                while (getchar() != '\n');
                 continue;
             }
-            while (getchar() != '\n'); // 改行を消費
+            while (getchar() != '\n');
         } while (!validate_score(score));
 
         scores[idx] = score;
         registered[idx] = 1;
-        registered_count++;
+        registered_subject_count++;
 
         printf("科目「%s」に点数 %d を登録しました。\n", subjects_ja[idx], score);
 
-        if (registered_count >= 5) {
+        if (registered_subject_count >= 5) {
             printf("最大登録科目数に達しました。\n");
             break;
         }
+
+        // 他の科目登録続行の問い合わせ
+        while (1) {
+            printf("他の科目を登録しますか？（y/n）: ");
+            char yn[10];
+            if (fgets(yn, sizeof(yn), stdin) == NULL) {
+                printf("入力エラー\n");
+                continue;
+            }
+            if (yn[0] == 'y' || yn[0] == 'Y') {
+                break;
+            } else if (yn[0] == 'n' || yn[0] == 'N') {
+                goto registration_done;
+            } else {
+                printf("yかnで答えてください。\n");
+            }
+        }
     }
 
-    while (1) {
-        printf("他の科目を登録しますか？（y/n）: ");
-        char yn[10]; // 入力バッファ
-        if (fgets(yn, sizeof(yn), stdin) == NULL) {
-            printf("入力エラー\n");
-            continue; // 再入力を促す
-        }
+registration_done:
 
-        // 最初の文字で判定
-        if (yn[0] == 'y' || yn[0] == 'Y') {
-            break; // 次の登録に進む
-        } else if (yn[0] == 'n' || yn[0] == 'N') {
-            goto end_program; // プログラム終了
-        } else {
-            printf("エラー: 'y' または 'n' を入力してください。\n");
-        }
+    // 登録データ配列の未登録は -1 にセット
+    for (int i = 0; i < SUBJECT_COUNT; i++) {
+        if (!registered[i]) scores[i] = -1;
     }
-}
 
-// end_program ラベルでプログラムの終了部分にジャンプ
-end_program:
-sqlite3_close(db);
-printf("プログラム終了\n");
-return 0;
+    // DB登録
+    int id = register_data(db, name, exam_day, scores);
+    if (id < 0) {
+        fprintf(stderr, "登録に失敗しました。\n");
+        sqlite3_close(db);
+        return 1;
+    }
+    printf("登録ID: %d\n", id);
+
+    sqlite3_close(db);
+    return 0;
 }
