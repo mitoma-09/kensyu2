@@ -204,7 +204,7 @@ int main(int argc, char *argv[]){
     }
 
     // テーブル作成
-    sprintf(sql_statement, "CREATE TABLE IF NOT EXISTS %s(%s)", table_name, table);
+    sprintf(sql_statement, "CREATE TABLE IF NOT EXISTS %s( %s )", table_name, table);
 
     // SQLステートメントを実行
     rc = sqlite3_exec(db, sql_statement, NULL, NULL, &error_message);
