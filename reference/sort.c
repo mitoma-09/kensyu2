@@ -37,8 +37,7 @@ void display_deviation_scores( const char *subject, int day, char *text);
 double calc_subject_std(const char *subject, int day, char *text);
 
 /// @brief データの構造体
-typedef struct data
-{
+typedef struct data{
     char name[40];
     // int day;
     int exam_day;
@@ -472,17 +471,21 @@ int disp_choice2(void){
 
         break;
     case 3:
+
+    break;
     case 4:
 
     //char* subject=subjects[0];
 
     //    display_deviation_scores(subject,day,text);
-
-    for(int i=0;i<NUM_SUBJECT;i++){
-          display_deviation_scores(subjects[i],  day, text);
-    }
+        printf("隠し機能：偏差値");
+        isFirstCall = 1; // ヘッダーのリセット
+        for (int i = 0; i < NUM_SUBJECT; i++){
+            display_deviation_scores(subjects[i], day, text);
+            CLEAR_INPUT_BUFFER();
+        }
   
-
+            break;
 
     case 5:
     case 6:
