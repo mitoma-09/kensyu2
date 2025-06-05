@@ -32,7 +32,7 @@ int validate_date(const int date);
 
 int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **), void *callback_data);
 
-void display_deviation_scores( char *subject, int day, char *text);
+void display_deviation_scores( const char *subject, int day, char *text);
 
 double calc_subject_std(const char *subject, int day, char *text);
 
@@ -63,6 +63,12 @@ typedef struct {
     char *table_name;
 
 } AppContext;
+
+///@brief 偏差値計算用のコンテキスト構造体
+typedef struct{
+    double avg;
+    double std;
+} DeviationContext;
 
 //構造体の初回呼び出しリセット
 #define RESET_FIRST_CALL(ctx) ((ctx)->isFirstCall = 1)
@@ -109,6 +115,23 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
     }
     printf("\n");*/
     // isFirstCall = 1; // フラグをリセット
+    return 0;
+}
+
+///@brief SQLコールバック関数（各受験者の得点から偏差値を計算し表示）
+int deviation_callback(void *data, int argc, char **argv, char **colNames){
+    DeviationContext *ctx = (DeviationContext *)data;
+    // 期待されるカラム: name, day, 得点
+    double score = 0.0;
+    if (argv[2]){
+        score = atof(argv[2]);
+    }
+    double deviation = 50 + 10 * (score - ctx->avg) / ctx->std;
+    printf("%-25s %-10s %-6s %-10.1f\n",
+           argv[0] ? argv[0] : "-",
+           argv[1] ? argv[1] : "-",
+           argv[2] ? argv[2] : "-",
+           deviation);
     return 0;
 }
 
@@ -419,6 +442,7 @@ int disp_choice2(void){
 
     int b;
     double average;
+    int day=20200202;
 
     printf(" \n");
 
@@ -450,12 +474,16 @@ int disp_choice2(void){
     case 3:
     case 4:
 
-    int day=20200202;
-    char* subject=subjects[0];
+    //char* subject=subjects[0];
 
-        display_deviation_scores(subject,day,text);
+    //    display_deviation_scores(subject,day,text);
 
-        
+    for(int i=0;i<NUM_SUBJECT;i++){
+          display_deviation_scores(subjects[i],  day, text);
+    }
+  
+
+
     case 5:
     case 6:
     case 7:
@@ -1027,6 +1055,7 @@ double calc_median(const char *subject, int day, char *text){
     return median;
 }
 
+/*
 void display_deviation_scores(char *subject, int day, char *text){
     double avg =calc_subject_average(subject,0,text); // 既存の平均取得関数
     double stddev = calc_stddev(subject, day, text);
@@ -1096,8 +1125,9 @@ void display_deviation_scores(char *subject, int day, char *text){
 #endif
 
     // execute_sql()を用いて、callback2で結果を表示
-    int rc = execute_sql(text, callback2, /*context_data*/ NULL);
+    int rc = execute_sql(text, callback2, /*context_data NULL);
 }
+*/
 
 ///@brief 指定された科目・日付ごとの標準偏差を算出するヘルパー関数
 ///@param subject 科目名（列名）
@@ -1137,6 +1167,45 @@ double calc_subject_std(const char *subject, int day, char *text){
     double std = sqrt(variance);
     return std;
 }
+
+///@brief 偏差値を計算して表示する
+///@param subject 科目名（列名）
+///@param day     日付（指定する場合はその値、全体なら0）
+///@param text    SQL文バッファ
+void display_deviation_scores(const char *subject, int day, char *text){
+    // 平均値と標準偏差を計算
+    double avg = calc_subject_average(subject, day, text);
+    double std = calc_subject_std(subject, day, text);
+    if (avg < 0 || std <= 0){
+        fprintf(stderr, "平均または標準偏差の計算に失敗しました。\n");
+        return;
+    }
+    printf("%sの平均点は %.1f, 標準偏差は %.1f です。\n", subject, avg, std);
+    printf("偏差値（50 + 10 * (得点 - 平均)/標準偏差）を計算します。\n");
+    // 各学生の得点を取得するためのクエリを作成
+    if (day > 0){
+        snprintf(text, MAX_SQL_SIZE,
+                 "SELECT name, day, %s FROM %s WHERE day = %d AND %s IS NOT NULL ORDER BY %s DESC;",
+                 subject, table_name, day, subject, subject);
+    }else{
+        snprintf(text, MAX_SQL_SIZE,
+                 "SELECT name, day, %s FROM %s WHERE %s IS NOT NULL ORDER BY %s DESC;",
+                 subject, table_name, subject, subject);
+    }
+#ifdef DEBUG
+    DEBUG_PRINT("Executing deviation SQL: %s", text);
+#endif
+    // 上記クエリの結果を処理するためのコールバックに、偏差値計算に必要な情報を渡す
+    DeviationContext dev_ctx;
+    dev_ctx.avg = avg;
+    dev_ctx.std = std;
+    int rc = execute_sql(text, deviation_callback, &dev_ctx);
+    if (rc != SQLITE_OK){
+        fprintf(stderr, "偏差値の表示に失敗しました。\n");
+    }
+}
+
+
 
 ///////////////////////////
 // 日付入力チェック
