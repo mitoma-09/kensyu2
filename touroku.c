@@ -500,11 +500,11 @@ int register_existing_examinee(sqlite3 *db) {
     // 登録処理：科目ごとにDB登録
     for (int i = 0; i < SUBJECT_COUNT; i++) {
         if (registered[i]) {
-            char exam_day_str[20];
-            sprintf(exam_day_str, "%d", exam_day);
-            if (insert_examinee(db, name, exam_day_str, i, scores[i]) != 0) {
-                printf("登録に失敗しました。\n");
-                return 1;
+            int exam_day = atoi(exam_date_str);
+            if (insert_examinee(db, name, exam_day, i, scores[i]) != 0) {
+            fprintf(stderr, "Error inserting examinee data.\n");
+            sqlite3_close(db);
+            return 1;
             }
         }
     }
