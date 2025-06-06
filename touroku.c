@@ -208,6 +208,29 @@ int insert_examinee(sqlite3 *db, const char *name, int exam_day, int subject_id,
     return 0;
 }
 
+int is_exam_date_exists(sqlite3 *db, const char *name, const char *exam_date_str) {
+    // 例: データベースを検索して、指定した名前と試験日が存在するかどうかをチェックする処理
+    // 実装例（簡易的）：
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT COUNT(*) FROM examinees WHERE name = ? AND exam_date = ?";
+    int exists = 0;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        return 0; // エラー時は存在しないとみなす
+    }
+
+    sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, exam_date_str, -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        int count = sqlite3_column_int(stmt, 0);
+        exists = (count > 0);
+    }
+
+    sqlite3_finalize(stmt);
+    return exists;
+}
+
 void trim_input(char *str) {
     char *end;
 
@@ -483,7 +506,7 @@ int register_existing_examinee(sqlite3 *db) {
         exam_day = atoi(exam_date_str);
 
         // 既に同じ試験日が登録されていないかチェック
-        if (is_exam_date_exists(db, name, exam_day)) {
+        if (is_exam_date_exists(db, name, exam_date_str)) {
             printf("その試験日は既に登録されています。別の日付を入力してください。\n");
             continue;
         }
@@ -501,7 +524,9 @@ int register_existing_examinee(sqlite3 *db) {
         printf("0. 登録終了\n");
 
         int subject_choice;
-
+        // 科目選択の入力ループ前にバッファクリア
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF); // バッファ内を空にする
         while (1) {
             printf("科目を選択してください（1〜%d、終了は0）: ", SUBJECT_COUNT);
             if (fgets(input, sizeof(input), stdin) == NULL) {
@@ -515,8 +540,8 @@ int register_existing_examinee(sqlite3 *db) {
                 printf("0〜%dの数字を入力してください。\n", SUBJECT_COUNT);
                 continue;
             }
-            break;
-        }
+        break;
+    }
 
         if (subject_choice == 0) break;
 
@@ -616,10 +641,12 @@ int main() {
         int choice;
         if (scanf("%d", &choice) != 1) {
             printf("入力エラー\n");
-            while (getchar() != '\n');
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
             continue;
         }
-        while (getchar() != '\n');
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
 
         if (choice == 0) break;
         else if (choice == 1) register_new_examinee(db);
