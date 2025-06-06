@@ -408,6 +408,25 @@ registration_done:
     return 0;
 }
 
+// 名前＋試験日の重複チェック関数
+int is_duplicate_examinee(sqlite3 *db, const char *name, int exam_day) {
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT COUNT(*) FROM testtable WHERE name = ? AND exam_day = ?;";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "重複チェック準備失敗: %s\n", sqlite3_errmsg(db));
+        return 1;  // エラー時は重複あり扱いにするのが安全
+    }
+    sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 2, exam_day);
+
+    int count = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        count = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return (count > 0);
+}
+
 // 既登録受験者の試験結果追加登録用関数
 int register_existing_examinee(sqlite3 *db) {
     char name[61];
