@@ -513,9 +513,13 @@ int register_existing_examinee(sqlite3 *db) {
         break;
     }
 
+    // 科目入力前に1回だけバッファクリア
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+
     // 科目・点数入力ループ
     while (registered_subject_count < 5) {
-        printf("\n--- 科目一覧 ---\n");
+        printf("--- 科目一覧 ---\n");
         for (int i = 0; i < SUBJECT_COUNT; i++) {
             printf("%d. %s", i + 1, subjects_ja[i]);
             if (registered[i]) printf(" [登録済み]");
@@ -524,10 +528,6 @@ int register_existing_examinee(sqlite3 *db) {
         printf("0. 登録終了\n");
 
         int subject_choice;
-
-        // 科目選択前にバッファをクリア（余計な改行などを消す）
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF); 
 
         while (1) {
             printf("科目を選択してください（1〜%d、終了は0）: ", SUBJECT_COUNT);
