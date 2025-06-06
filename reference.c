@@ -1155,7 +1155,7 @@ double calc_subject_std(const char *subject, int day, char *text){
                  subject, subject, table_name, subject);
     }
 #ifdef DEBUG
-    DEBUG_PRINT("Executing SQL for std dev: %s", text);
+    printf("実行するSQL: %s\n", text);
 #endif
     int rc = execute_sql(text, callback_avg, &avg_sq);
     if (rc != SQLITE_OK){
@@ -1196,7 +1196,7 @@ void display_deviation_scores(const char *subject, int day, char *text){
                  subject, table_name, subject, subject);
     }
 #ifdef DEBUG
-    DEBUG_PRINT("Executing deviation SQL: %s", text);
+    printf("実行するSQL: %s\n", text);
 #endif
     // 上記クエリの結果を処理するためのコールバックに、偏差値計算に必要な情報を渡す
     DeviationContext dev_ctx;
