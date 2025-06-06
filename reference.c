@@ -139,7 +139,7 @@ int deviation_callback(void *data, int argc, char **argv, char **colNames){
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
 
-// #define DEBUG
+ #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
