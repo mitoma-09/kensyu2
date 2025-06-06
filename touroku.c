@@ -431,7 +431,7 @@ int is_duplicate_examinee(sqlite3 *db, const char *name, int exam_day) {
     return (count > 0);
 }
 
-// 既登録受験者の試験結果追加登録用関数
+// 既登録受験者の違う試験日で新規試験結果を登録する関数
 int register_existing_examinee(sqlite3 *db) {
     char name[61];
     char exam_date_str[9];
@@ -465,21 +465,30 @@ int register_existing_examinee(sqlite3 *db) {
         return 1;
     }
 
-    printf("既登録の受験者です。試験結果を追加登録してください。\n");
+    printf("違う試験日に新規で試験結果を登録してください。\n");
 
-    // 試験日入力＆バリデーション
+    // 新しい試験日入力＆バリデーション
     while (1) {
-        printf("試験日を8桁で入力してください（例: 20250513）: ");
+        printf("新しい試験日を8桁で入力してください（例: 20250513）: ");
         if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
             printf("入力エラー\n");
             return 1;
         }
         exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
 
-        if (validate_date(exam_date_str)) break;
-        printf("日付の形式が正しくありません。\n");
+        if (!validate_date(exam_date_str)) {
+            printf("日付の形式が正しくありません。\n");
+            continue;
+        }
+        exam_day = atoi(exam_date_str);
+
+        // 既に同じ試験日が登録されていないかチェック
+        if (is_exam_date_exists(db, name, exam_day)) {
+            printf("その試験日は既に登録されています。別の日付を入力してください。\n");
+            continue;
+        }
+        break;
     }
-    exam_day = atoi(exam_date_str);
 
     // 科目・点数入力ループ
     while (registered_subject_count < 5) {
@@ -586,7 +595,7 @@ registration_done:
         }
     }
 
-    printf("試験結果を追加登録しました。\n");
+    printf("新しい試験日の試験結果を登録しました。\n");
     return 0;
 }
 
