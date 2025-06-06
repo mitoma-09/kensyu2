@@ -7,6 +7,7 @@
 #include "sqlite3.h"
 #include "db_operations.h"     // DB操作関連の関数
 
+#include "delete_operations.h"  //削除機能
 #include "reference.h"   //参照機能
 
 #define MAX_SQL_SIZE 2000
@@ -76,12 +77,12 @@ int main(int argc, char **argv) {
                 // TODO: 変更処理を呼び出す関数を追加 (例: modify_data(db); )
                 break;
             case 3: // 3.削除
-                printf("受験者情報の削除ができます。（未実装）\n");
-                // TODO: 削除処理を呼び出す関数を追加 (例: delete_data(db); )
+                printf("受験者情報の削除ができます。（仮実装）\n");
+                delete_examinee_data(db);  
+                delete_exam_data(db);            
                 break;
             case 4: // 4.参照
                 printf("結果による様々な情報を参照できます。\n");
-                reference();
                 //disp_choice1(db);
                 //disp_choice2(db); 
                 break;

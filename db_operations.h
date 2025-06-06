@@ -3,6 +3,10 @@
 
 #include "sqlite3.h" // sqlite3_t 型を使用するため
 
+#define USERS_TABLE_NAME "users"
+#define EXAM_SESSIONS_TABLE_NAME "exam_sessions"
+#define SCORES_TABLE_NAME "scores"
+
 // データベース接続
 sqlite3* connect_to_database(const char *dbname);
 

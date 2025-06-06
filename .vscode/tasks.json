@@ -8,7 +8,8 @@
             "args": [
                 "main.c",          // ★パスの区切りをスラッシュに変更、または相対パスとして指定 (workspaceFolder は自動で現在のディレクトリになる)
                 "db_operations.c",
-                "reference.c", //参照機能
+                "delete_operations.c", //削除機能
+                //"reference.c",         //参照機能
                 "-o",
                 "test_manager",    // ★出力ファイル名を Linux 形式に修正 (拡張子.exeは不要)
                 "-lsqlite3",       // SQLite3 ライブラリのリンク

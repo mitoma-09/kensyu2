@@ -33,13 +33,13 @@ int create_tables(sqlite3 *db) {
                                     "exam_date TEXT NOT NULL,"
                                     "year TEXT NOT NULL,"
                                     "user_id INTEGER NOT NULL,"
-                                    "FOREIGN KEY (user_id) REFERENCES users(id));";
+                                    "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);";
     const char *sql_scores = "CREATE TABLE IF NOT EXISTS scores ("
                              "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                              "exam_session_id INTEGER NOT NULL,"
                              "subject TEXT NOT NULL,"
                              "score INTEGER NOT NULL,"
-                             "FOREIGN KEY (exam_session_id) REFERENCES exam_sessions(id));";
+                             "FOREIGN KEY (exam_session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE);";
 
     // users テーブル作成
     int rc = sqlite3_exec(db, sql_users, 0, 0, &err_msg);
