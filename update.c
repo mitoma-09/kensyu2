@@ -131,10 +131,15 @@ void examdata(sqlite3 *db) {
 
     // 実行
     if (sqlite3_step(stmt) == SQLITE_DONE) {
-        printf("受験者情報を正常に更新しました。\n");
+    int changes = sqlite3_changes(db);
+    if (changes > 0) {
+        printf("受験者情報を正常に更新しました。（%d件変更）\n", changes);
     } else {
-        printf("更新に失敗しました: %s\n", sqlite3_errmsg(db));
+        printf("該当するIDが存在しませんでした。更新は行われませんでした。\n");
     }
+} else {
+    printf("更新に失敗しました: %s\n", sqlite3_errmsg(db));
+}
 
     sqlite3_finalize(stmt);
 
