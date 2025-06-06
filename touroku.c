@@ -18,120 +18,151 @@ const int liberal_indices[] = {3,4,5};  // 文系科目インデックス
 const int science_indices[] = {6,7,8};  // 理系科目インデックス
 
 // --- DB処理 ---
+// データベースに接続し、必要であればテーブルを作成する関数
 sqlite3* connect_to_database(const char *filename) {
     sqlite3 *db;
+
+    // データベースファイルを開く（存在しない場合は作成される）
     if (sqlite3_open(filename, &db) != SQLITE_OK) {
-        fprintf(stderr, "データベース接続に失敗しました: %s\n", sqlite3_errmsg(db));
-        exit(1);
+        fprintf(stderr, "データベースに接続できません: %s\n", sqlite3_errmsg(db));
+        exit(1); // エラー時はプログラムを終了
     }
 
+    // 試験結果を保存するテーブルを作成（既に存在する場合は何もしない）
     const char *create_table_sql =
-        "CREATE TABLE IF NOT EXISTS testtable ("
-        "name TEXT NOT NULL, "
-        "exam_day INTEGER NOT NULL, "
-        "nLang INTEGER, "
-        "math INTEGER, "
-        "Eng INTEGER, "
-        "JHist INTEGER, "
-        "wHist INTEGER, "
-        "geo INTEGER, "
-        "phys INTEGER, "
-        "chem INTEGER, "
-        "bio INTEGER, "
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT"
+        "CREATE TABLE IF NOT EXISTS testtable ("  // テーブル名は "testtable"
+        "name TEXT NOT NULL, "                    // 受験者名（NULL不可）
+        "exam_day INTEGER NOT NULL, "            // 試験日（数値形式）
+        "nLang INTEGER, "                        // 国語の点数
+        "math INTEGER, "                         // 数学の点数
+        "Eng INTEGER, "                          // 英語の点数
+        "JHist INTEGER, "                        // 日本史の点数
+        "wHist INTEGER, "                        // 世界史の点数
+        "geo INTEGER, "                          // 地理の点数
+        "phys INTEGER, "                         // 物理の点数
+        "chem INTEGER, "                         // 化学の点数
+        "bio INTEGER, "                          // 生物の点数
+        "ID INTEGER PRIMARY KEY AUTOINCREMENT"   // 自動採番されるユニークID
         ");";
 
+    // テーブル作成用のSQL文を実行
     char *errmsg = NULL;
     if (sqlite3_exec(db, create_table_sql, NULL, NULL, &errmsg) != SQLITE_OK) {
-        fprintf(stderr, "テーブル作成に失敗しました: %s\n", errmsg);
+        fprintf(stderr, "テーブルを作成できません: %s\n", errmsg);
         sqlite3_free(errmsg);
         sqlite3_close(db);
         exit(1);
     }
-    return db;
+
+    return db; // データベース接続のポインタを返す
 }
 
+// 受験者が同じ試験日に登録されているかを確認する関数
 int is_duplicate(sqlite3 *db, const char *name, int exam_day) {
     sqlite3_stmt *stmt;
+
+    // 名前と試験日が一致するデータの件数を確認するSQL文
     const char *sql = "SELECT COUNT(*) FROM testtable WHERE name = ? AND exam_day = ?;";
+
+    // SQL文を準備（プリコンパイル）
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "重複チェック準備失敗: %s\n", sqlite3_errmsg(db));
-        return 1;
+        fprintf(stderr, "重複チェック用の準備に失敗: %s\n", sqlite3_errmsg(db));
+        return 1; // エラーが発生した場合
     }
     sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 2, exam_day);
 
     int count = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-        count = sqlite3_column_int(stmt, 0);
+        count = sqlite3_column_int(stmt, 0); // 件数を取得
     }
-    sqlite3_finalize(stmt);
-    return (count > 0);
+
+    sqlite3_finalize(stmt); // ステートメントを解放
+    return (count > 0);     // 件数が0より大きい場合は重複がある
 }
 
+// データベースに登録されている受験者の総件数を取得する関数
 int get_registered_count(sqlite3 *db) {
     sqlite3_stmt *stmt;
+
+    // テーブル内のデータ件数を取得するSQL文
     const char *sql = "SELECT COUNT(*) FROM testtable;";
+
+    // SQL文を準備
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "登録数取得エラー: %s\n", sqlite3_errmsg(db));
-        return -1;
+        fprintf(stderr, "登録件数の取得に失敗: %s\n", sqlite3_errmsg(db));
+        return -1; // エラーの場合
     }
+
+    // SQLを実行して件数を取得
     int count = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-        count = sqlite3_column_int(stmt, 0);
+        count = sqlite3_column_int(stmt, 0); // 件数を取得
     }
-    sqlite3_finalize(stmt);
-    return count;
+
+    sqlite3_finalize(stmt); // ステートメントを解放
+    return count;           // 件数を返す
 }
 
+// 試験結果をデータベースに登録する関数
 int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     sqlite3_stmt *stmt;
+
+    // 試験結果を挿入するためのSQL文
     const char *insert_sql =
         "INSERT INTO testtable "
         "(name, exam_day, nLang, math, Eng, JHist, wHist, geo, phys, chem, bio) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
+    // SQL文を準備
     if (sqlite3_prepare_v2(db, insert_sql, -1, &stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "データ登録の準備に失敗しました: %s\n", sqlite3_errmsg(db));
-        return -1;
+        fprintf(stderr, "データ登録の準備に失敗: %s\n", sqlite3_errmsg(db));
+        return -1; // エラーの場合
     }
 
-    sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, 2, exam_day);
+    // プレースホルダー（?）に値を設定
+    sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC); // 名前をバインド
+    sqlite3_bind_int(stmt, 2, exam_day);                // 試験日をバインド
+
+    // 各科目のスコアをバインド（-1の場合はNULLを設定）
     for (int i = 0; i < SUBJECT_COUNT; i++) {
         if (scores[i] == -1) {
-            sqlite3_bind_null(stmt, 3 + i);
+            sqlite3_bind_null(stmt, 3 + i); // NULL値を設定
         } else {
-            sqlite3_bind_int(stmt, 3 + i, scores[i]);
+            sqlite3_bind_int(stmt, 3 + i, scores[i]); // スコアを設定
         }
     }
 
+    // SQLを実行してデータを挿入
     int result = sqlite3_step(stmt);
     if (result == SQLITE_DONE) {
         printf("データが正常に登録されました。\n");
-        printf("※ 登録内容の修正が必要な場合は、変更機能をご利用ください。\n");
+        printf("※ 登録内容を修正したい場合は変更機能をご利用ください。\n");
     } else {
-        fprintf(stderr, "データ登録に失敗しました: %s\n", sqlite3_errmsg(db));
+        fprintf(stderr, "データ登録に失敗: %s\n", sqlite3_errmsg(db));
         sqlite3_finalize(stmt);
-        return -1;
+        return -1; // エラーの場合
     }
-    sqlite3_finalize(stmt);
 
-    // 挿入された行のIDを取得
+    sqlite3_finalize(stmt); // ステートメントを解放
+
+    // 挿入したデータの行IDを取得して返す
     int id = sqlite3_last_insert_rowid(db);
     return id;
 }
 
+// --- 名前のバリデーション ---
+// 名前が全角カタカナで構成され、20文字以内であるかを検証する
 int validate_name(const char *name) {
     size_t len = strlen(name);
 
-    // 文字数チェック
+    // 名前の長さをチェック（最大60バイト以内）
     if (len > 60) { // UTF-8エンコーディングで全角カタカナは最大3バイトなので、20文字は60バイト以内
         printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
         return 0;
     }
 
-    // 全角カタカナのみを許可
+    // 名前が全角カタカナで構成されているかを確認
     wchar_t wc;
     mbstate_t state;
     memset(&state, 0, sizeof(state));
@@ -139,49 +170,61 @@ int validate_name(const char *name) {
     size_t mblen;
 
     while (*ptr) {
+        // マルチバイト文字をワイド文字に変換
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
             printf("エラー: 無効な文字が含まれています。\n");
             return 0;
         }
 
-        // 全角カタカナまたは長音符かどうか
+        // 文字が全角カタカナまたは長音符かをチェック
         if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
             printf("エラー: 名前は全角カタカナで入力してください。\n");
             return 0;
         }
-        ptr += mblen;
+        ptr += mblen; // 次の文字に移動
     }
 
-    return 1;
+    return 1; // 検証成功
 }
 
+// --- 名前の存在確認 ---
+// データベース内に指定した名前が既に存在するかを確認する
 int is_name_exists(sqlite3 *db, const char *name) {
     sqlite3_stmt *stmt;
+
+    // 名前の存在確認を行うSQL文
     const char *sql = "SELECT COUNT(*) FROM testtable WHERE name = ?;";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "Error preparing statement: %s\n", sqlite3_errmsg(db));
-        return 0;
+        fprintf(stderr, "ステートメントの準備に失敗: %s\n", sqlite3_errmsg(db));
+        return 0; // エラー時は存在しないとみなす
     }
+
+    // 名前をバインド
     sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
 
+    // 結果を取得
     int count = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-        count = sqlite3_column_int(stmt, 0);
+        count = sqlite3_column_int(stmt, 0); // 件数を取得
     }
     sqlite3_finalize(stmt);
-    return count > 0;
+    return count > 0; // 件数が0より大きければ存在
 }
 
+// --- 試験結果の挿入 ---
+// 指定した科目に得点を登録する
 int insert_examinee(sqlite3 *db, const char *name, int exam_day, int subject_id, int score) {
-
+    // 科目列の対応表
     const char *subject_columns[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys", "chem", "bio"};
 
+    // 無効な科目IDのチェック
     if (subject_id < 0 || subject_id >= SUBJECT_COUNT) {
-        fprintf(stderr, "Invalid subject_id\n");
+        fprintf(stderr, "無効な科目IDです\n");
         return -1;
     }
 
+    // 試験結果を更新するSQL文を作成
     char sql[256];
     snprintf(sql, sizeof(sql),
         "UPDATE testtable SET %s = ? WHERE name = ? AND exam_day = ?;",
@@ -189,66 +232,82 @@ int insert_examinee(sqlite3 *db, const char *name, int exam_day, int subject_id,
 
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "Error preparing statement: %s\n", sqlite3_errmsg(db));
+        fprintf(stderr, "ステートメントの準備に失敗: %s\n", sqlite3_errmsg(db));
         return -1;
     }
 
-    sqlite3_bind_int(stmt, 1, score);
-    sqlite3_bind_text(stmt, 2, name, -1, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, 3, exam_day);
+    // 値をバインド
+    sqlite3_bind_int(stmt, 1, score);             // 得点
+    sqlite3_bind_text(stmt, 2, name, -1, SQLITE_STATIC); // 名前
+    sqlite3_bind_int(stmt, 3, exam_day);          // 試験日
 
+    // SQL文を実行
     int rc = sqlite3_step(stmt);
     if (rc != SQLITE_DONE) {
-        fprintf(stderr, "Error executing statement: %s\n", sqlite3_errmsg(db));
+        fprintf(stderr, "SQL実行エラー: %s\n", sqlite3_errmsg(db));
         sqlite3_finalize(stmt);
         return -1;
     }
 
-    sqlite3_finalize(stmt);
-    return 0;
+    sqlite3_finalize(stmt); // ステートメントを解放
+    return 0; // 成功
 }
 
+// --- 試験日の存在確認 ---
+// 指定した名前と試験日がデータベースに存在するかを確認する
 int is_exam_date_exists(sqlite3 *db, const char *name, const char *exam_date_str) {
-    // 例: データベースを検索して、指定した名前と試験日が存在するかどうかをチェックする処理
-    // 実装例（簡易的）：
     sqlite3_stmt *stmt;
+
+    // 名前と試験日の存在確認を行うSQL文
     const char *sql = "SELECT COUNT(*) FROM examinees WHERE name = ? AND exam_date = ?";
     int exists = 0;
 
+    // ステートメントの準備
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
         return 0; // エラー時は存在しないとみなす
     }
 
+    // 名前と試験日をバインド
     sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, exam_date_str, -1, SQLITE_STATIC);
 
+    // SQL文を実行して結果を取得
+    int exists = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         int count = sqlite3_column_int(stmt, 0);
-        exists = (count > 0);
+        exists = (count > 0); // 件数が0より大きければ存在
     }
 
-    sqlite3_finalize(stmt);
+    sqlite3_finalize(stmt); // ステートメントを解放
     return exists;
 }
 
+// --- 入力のトリム ---
+// 文字列の先頭と末尾の空白を削除する
 void trim_input(char *str) {
     char *end;
 
-    // 前後のスペース削除
+    // 先頭の空白を削除
     while (isspace((unsigned char)*str)) str++;
     if (*str == 0) return;
 
+    // 末尾の空白を削除
     end = str + strlen(str) - 1;
     while (end > str && isspace((unsigned char)*end)) end--;
 
-    *(end + 1) = '\0';
-    }
+    *(end + 1) = '\0'; // 終端文字を設定
+}
 
+// --- 日付のバリデーション ---
+// 日付が8桁の数字であり、存在する日付かを確認する
 int validate_date(const char *date) {
+    // 入力が8桁の数字で構成されているかをチェック
     if (strlen(date) != 8 || strspn(date, "0123456789") != 8) {
         printf("エラー: 日付は8桁の数字で入力してください（例: 20250513）。\n");
         return 0;
     }
+
+    // 年月日を抽出
     char year_str[5], month_str[3], day_str[3];
     strncpy(year_str, date, 4); year_str[4] = '\0';
     strncpy(month_str, date + 4, 2); month_str[2] = '\0';
@@ -258,21 +317,27 @@ int validate_date(const char *date) {
     int month = atoi(month_str);
     int day = atoi(day_str);
 
+    // 月が1～12であるかをチェック
     if (month < 1 || month > 12) {
         printf("エラー: 存在しない月です。\n");
         return 0;
     }
+
+    // 各月の日数を設定（うるう年対応）
     int days_in_month[] = {31,28,31,30,31,30,31,31,30,31,30,31};
     if ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) {
-        days_in_month[1] = 29;
+        days_in_month[1] = 29; // 2月が29日
     }
+
+    // 日がその月の日数内に収まっているかをチェック
     if (day < 1 || day > days_in_month[month - 1]) {
         printf("エラー: 存在しない日です。\n");
         return 0;
     }
+
     return 1;
 }
-
+//点数が範囲に収まっているかチェック
 int validate_score(int score) {
     if (score < 0 || score > 100) {
         printf("エラー: 点数は0〜100の範囲で入力してください。\n");
@@ -626,36 +691,50 @@ int register_existing_examinee(sqlite3 *db) {
     return 0;
 }
 
-// main関数
+// --- main関数 ---
 int main() {
+    // ロケールを日本語に設定（全角カタカナなどの文字処理のため）
     setlocale(LC_ALL, "ja_JP.UTF-8");
 
     sqlite3 *db;
+    // データベースに接続（ファイル名は "examdata.db"）
     db = connect_to_database("examdata.db"); 
 
+    // メインループ
     while (1) {
+        // メニューの表示
         printf("\n受験者情報管理\n");
-        printf("1: 新規登録\n");
-        printf("2: 既登録者試験結果追加登録\n");
-        printf("0: 終了\n");
+        printf("1: 新規登録\n"); // 新しい受験者の登録
+        printf("2: 既登録者試験結果追加登録\n"); // 既存受験者への試験結果の追加
+        printf("0: 終了\n"); // プログラムを終了
         printf("選択してください: ");
 
         int choice;
+        // ユーザーの入力を取得
         if (scanf("%d", &choice) != 1) {
+            // 入力エラー時の処理
             printf("入力エラー\n");
             int c;
-            while ((c = getchar()) != '\n' && c != EOF);
+            while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
             continue;
         }
         int c;
-        while ((c = getchar()) != '\n' && c != EOF);
+        while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
 
-        if (choice == 0) break;
-        else if (choice == 1) register_new_examinee(db);
-        else if (choice == 2) register_existing_examinee(db);
-        else printf("無効な選択です。\n");
+        // ユーザーの選択に基づく処理
+        if (choice == 0) 
+            break; // 0を選択した場合、ループを終了（プログラム終了）
+        else if (choice == 1) 
+            register_new_examinee(db); // 新規受験者の登録処理
+        else if (choice == 2) 
+            register_existing_examinee(db); // 既存受験者の試験結果登録処理
+        else 
+            printf("無効な選択です。\n"); // 不正な選択時のエラーメッセージ
     }
 
+    // データベース接続を閉じる
     sqlite3_close(db);
+
+    // プログラムの終了
     return 0;
 }
