@@ -7,6 +7,10 @@
 #include <ctype.h>
 
 #define SUBJECT_COUNT 9
+#define LIBERAL_START_INDEX 3
+#define LIBERAL_END_INDEX 5
+#define SCIENCE_START_INDEX 6
+#define SCIENCE_END_INDEX 8
 
 // --- グローバル定義 ---
 const char* subjects_ja[] = {"国語", "数学", "英語", "日本史", "世界史", "地理", "物理", "化学", "生物"};
@@ -436,6 +440,12 @@ int register_existing_examinee(sqlite3 *db) {
     int registered[SUBJECT_COUNT] = {0};
     int registered_subject_count = 0;
 
+    int liberal_selected = 0; // 文系科目が選択済みか
+    int science_selected = 0; // 理系科目が選択済みか
+
+    char input[32];
+    char *endptr;
+
     // 名前入力＆バリデーション
     while (1) {
         printf("名前を全角カタカナで入力してください（20文字以内）: ");
@@ -443,13 +453,13 @@ int register_existing_examinee(sqlite3 *db) {
             printf("入力エラー\n");
             return 1;
         }
-        name[strcspn(name, "\n")] = '\0';  // 改行除去
+        name[strcspn(name, "\n")] = '\0';
         trim_input(name);
         if (validate_name(name)) break;
         printf("名前の形式が正しくありません。\n");
     }
 
-    // 名前のみ存在チェック
+    // 名前存在チェック
     if (!is_name_exists(db, name)) {
         printf("エラー: 該当する受験者が登録されていません。\n");
         return 1;
@@ -458,72 +468,120 @@ int register_existing_examinee(sqlite3 *db) {
     printf("既登録の受験者です。試験結果を追加登録してください。\n");
 
     // 試験日入力＆バリデーション
-    do {
+    while (1) {
         printf("試験日を8桁で入力してください（例: 20250513）: ");
-        if (scanf("%8s", exam_date_str) != 1) {
-            printf("試験日入力エラー\n");
-            while (getchar() != '\n');
+        if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
+            printf("入力エラー\n");
             return 1;
         }
-        getchar();
-    } while (!validate_date(exam_date_str));
+        exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
+
+        if (validate_date(exam_date_str)) break;
+        printf("日付の形式が正しくありません。\n");
+    }
     exam_day = atoi(exam_date_str);
 
     // 科目・点数入力ループ
-    while (registered_subject_count < SUBJECT_COUNT) {
-        int subject_choice;
-        printf("\n科目を選択してください:\n");
+    while (registered_subject_count < 5) {
+        printf("\n--- 科目一覧 ---\n");
         for (int i = 0; i < SUBJECT_COUNT; i++) {
-        printf("%d. %s\n", i + 1, subjects_ja[i]);
+            printf("%d. %s", i + 1, subjects_ja[i]);
+            if (registered[i]) printf(" [登録済み]");
+            printf("\n");
         }
         printf("0. 登録終了\n");
 
-        if (scanf("%d", &subject_choice) != 1) {
-            printf("入力エラー\n");
-            while (getchar() != '\n');
-            continue;
-        }
-        getchar();
+        int subject_choice;
 
-        if (subject_choice == 0) {
+        while (1) {
+            printf("科目を選択してください（1〜%d、終了は0）: ", SUBJECT_COUNT);
+            if (fgets(input, sizeof(input), stdin) == NULL) {
+                printf("入力エラー\n");
+                return 1;
+            }
+            input[strcspn(input, "\n")] = '\0';
+
+            subject_choice = (int)strtol(input, &endptr, 10);
+            if (*endptr != '\0' || subject_choice < 0 || subject_choice > SUBJECT_COUNT) {
+                printf("0〜%dの数字を入力してください。\n", SUBJECT_COUNT);
+                continue;
+            }
             break;
         }
-        if (subject_choice < 1 || subject_choice > SUBJECT_COUNT) {
-            printf("無効な選択です。\n");
+
+        if (subject_choice == 0) break;
+
+        int idx = subject_choice - 1;
+        if (registered[idx]) {
+            printf("科目「%s」は既に登録済みです。\n", subjects_ja[idx]);
             continue;
         }
-        if (registered[subject_choice - 1]) {
-            printf("その科目は既に登録済みです。\n");
+
+        // 文系科目チェック
+        int is_liberal = (idx >= LIBERAL_START_INDEX && idx <= LIBERAL_END_INDEX);
+        if (is_liberal && liberal_selected) {
+            printf("文系科目は既に選択済みです。\n");
+            continue;
+        }
+
+        // 理系科目チェック
+        int is_science = (idx >= SCIENCE_START_INDEX && idx <= SCIENCE_END_INDEX);
+        if (is_science && science_selected) {
+            printf("理系科目は既に選択済みです。\n");
             continue;
         }
 
         int score;
-        printf("点数を0〜100で入力してください: ");
-        if (scanf("%d", &score) != 1 || score < 0 || score > 100) {
-            printf("無効な点数です。\n");
-            while (getchar() != '\n');
-            continue;
+        while (1) {
+            printf("点数を入力してください（0〜100）: ");
+            if (fgets(input, sizeof(input), stdin) == NULL) {
+                printf("入力エラー\n");
+                return 1;
+            }
+            input[strcspn(input, "\n")] = '\0';
+
+            score = (int)strtol(input, &endptr, 10);
+            if (*endptr != '\0' || score < 0 || score > 100) {
+                printf("0〜100の整数を入力してください。\n");
+                continue;
+            }
+            break;
         }
-        getchar();
 
-        scores[subject_choice - 1] = score;
-        registered[subject_choice - 1] = 1;
+        scores[idx] = score;
+        registered[idx] = 1;
         registered_subject_count++;
+        if (is_liberal) liberal_selected = 1;
+        if (is_science) science_selected = 1;
+
+        printf("科目「%s」に点数 %d を登録しました。\n", subjects_ja[idx], score);
+
+        if (registered_subject_count >= 5) {
+            printf("最大登録科目数に達しました。\n");
+            break;
+        }
+
+        // 続けて登録するか確認
+        while (1) {
+            printf("他の科目を登録しますか？（y/n）: ");
+            if (fgets(input, sizeof(input), stdin) == NULL) {
+                printf("入力エラー\n");
+                return 1;
+            }
+            if (input[0] == 'y' || input[0] == 'Y') break;
+            else if (input[0] == 'n' || input[0] == 'N') goto registration_done;
+            else printf("yかnで答えてください。\n");
+        }
     }
 
-    if (registered_subject_count == 0) {
-        printf("登録する科目がありません。\n");
-        return 1;
-    }
+registration_done:
 
-    // 登録処理：科目ごとにDB登録
+    // 登録処理
     for (int i = 0; i < SUBJECT_COUNT; i++) {
         if (registered[i]) {
-            int exam_day = atoi(exam_date_str);
             if (insert_examinee(db, name, exam_day, i, scores[i]) != 0) {
-            fprintf(stderr, "Error inserting examinee data.\n");
-            sqlite3_close(db);
-            return 1;
+                fprintf(stderr, "Error inserting examinee data.\n");
+                return 1;
             }
         }
     }
