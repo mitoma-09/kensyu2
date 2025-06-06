@@ -172,7 +172,7 @@ char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
 ///////////////////////////
 // main関数(reference)
 ///////////////////////////
-int reference(int argc, char *argv[]){
+int reference(){
     isFirstCall = 1;
 
     db_name = "test.sqlite3";
