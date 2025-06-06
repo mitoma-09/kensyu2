@@ -83,15 +83,21 @@ void examdata(sqlite3 *db) {
 
     // 氏名入力（最初に）
     while (1) {
-        printf("新しい氏名（カタカナ20文字以内）: ");
-        fgets(name, sizeof(name), stdin);
-        name[strcspn(name, "\n")] = '\0';
-        if (strlen(name) > MAX_NAME_LEN || !is_katakana(name)) {
-            printf("カタカナ20文字以内で再入力してください。\n");
-        } else {
-            break;
-        }
+    printf("新しい氏名（カタカナ20文字以内）: ");
+    fgets(name, sizeof(name), stdin);
+    name[strcspn(name, "\n")] = '\0';
+
+    // 🔽 ここがデバッグ出力です 🔽
+    printf("DEBUG: 入力された氏名 = [%s]\n", name);
+    printf("DEBUG: is_katakana(name) = %d\n", is_katakana(name));
+    printf("DEBUG: strlen(name) = %zu\n", strlen(name));
+
+    if (strlen(name) > MAX_NAME_LEN ) {
+        printf("カタカナ20文字以内で再入力してください。\n");
+    } else {
+        break;
     }
+}
 
     // 試験日入力
     while (1) {
