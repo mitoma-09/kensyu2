@@ -170,9 +170,9 @@ char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
 #define NUM_SUBJECT 9 //教科数
 
 ///////////////////////////
-// main関数
+// main関数(reference)
 ///////////////////////////
-int main(int argc, char *argv[]){
+int reference(int argc, char *argv[]){
     isFirstCall = 1;
 
     db_name = "test.sqlite3";
