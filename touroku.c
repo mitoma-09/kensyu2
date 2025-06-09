@@ -25,7 +25,8 @@ int is_duplicate(sqlite3 *db, const char *name, int exam_day) {
     sqlite3_stmt *stmt;
 
     // 名前と試験日が一致するデータの件数を確認するSQL文
-    const char *sql = "SELECT COUNT(*) FROM testtable WHERE name = ? AND exam_day = ?;";
+    char sql[256];
+    snprintf(sql, sizeof(sql), "SELECT COUNT(*) FROM %s WHERE name = ? AND exam_day = ?;", DATABASE_TABLENAME);
 
     // SQL文を準備（プリコンパイル）
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -47,9 +48,9 @@ int is_duplicate(sqlite3 *db, const char *name, int exam_day) {
 // データベースに登録されている受験者の総件数を取得する関数
 int get_registered_count(sqlite3 *db) {
     sqlite3_stmt *stmt;
-
+    char sql[256];
     // テーブル内のデータ件数を取得するSQL文
-    const char *sql = "SELECT COUNT(*) FROM testtable;";
+    snprintf(sql, sizeof(sql), "SELECT COUNT(*) FROM %s;", DATABASE_TABLENAME);
 
     // SQL文を準備
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -72,10 +73,11 @@ int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     sqlite3_stmt *stmt;
 
     // 試験結果を挿入するためのSQL文
-    const char *insert_sql =
-        "INSERT INTO testtable "
-        "(name, exam_day, nLang, math, Eng, JHist, wHist, geo, phys, chem, bio) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+    char insert_sql[512];
+    snprintf(insert_sql, sizeof(insert_sql),
+    "INSERT INTO %s (name, exam_day, nLang, math, Eng, JHist, wHist, geo, phys, chem, bio) "
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", DATABASE_TABLENAME);
+
 
     // SQL文を準備
     if (sqlite3_prepare_v2(db, insert_sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -189,9 +191,9 @@ int insert_examinee(sqlite3 *db, const char *name, int exam_day, int subject_id,
 
     // 試験結果を更新するSQL文を作成
     char sql[256];
-    snprintf(sql, sizeof(sql),
-        "UPDATE testtable SET %s = ? WHERE name = ? AND exam_day = ?;",
-        subject_columns[subject_id]);
+    snprintf(sql, sizeof(sql), "UPDATE %s SET %s = ? WHERE name = ? AND exam_day = ?;",
+         DATABASE_TABLENAME, subject_columns[subject_id]);
+
 
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -222,7 +224,8 @@ int is_exam_date_exists(sqlite3 *db, const char *name, const char *exam_date_str
     sqlite3_stmt *stmt;
 
     // 名前と試験日の存在確認を行うSQL文
-    const char *sql = "SELECT COUNT(*) FROM examinees WHERE name = ? AND exam_date = ?";
+    char sql[256];
+    snprintf(sql, sizeof(sql), "SELECT COUNT(*) FROM %s WHERE name = ? AND exam_day = ?;", DATABASE_TABLENAME);
     int exists = 0;
 
     // ステートメントの準備
