@@ -177,9 +177,11 @@ int reference(sqlite3 *database){
     db=database;
     isFirstCall = 1;
 
-    db_name = "test.sqlite3";
+    //db_name = "test.sqlite3";
+    db_name=DATABASE_FILENAME;
     // table_name = "pointTools";
-    table_name = "pT";
+    //table_name = "pT";
+    table_name= DATABASE_TABLENAME;
 
     char *error_message; // エラーメッセージ用
     char sql_statement[2000];
@@ -534,7 +536,7 @@ int top_sort(int person, char *subject, char *text){
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
                  "SELECT * FROM ( "
-                 "SELECT name, day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
+                 "SELECT name, exam_day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
                  "FROM %s WHERE %s IS NOT NULL "
                  ") AS ranked_data "
                  "WHERE ranking <= %d "
@@ -575,7 +577,7 @@ int top_sort_sum(int person, char *text){
                  //  "WHERE ranking <= %d  "
                  //  "ORDER BY ranking ASC;",
                  //  table_name, person);
-                 "SELECT * FROM (  SELECT name, day, "
+                 "SELECT * FROM (  SELECT name, exam_day, "
                  "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
                  "    ( %s) DESC) AS ranking  "
@@ -613,8 +615,8 @@ int top_sort_day(int day, int person, char *subject, char *text){
                  //,table_name,subject,subject,subject,table_name,subject, person-1,subject);
 
                  "SELECT * FROM ( "
-                 "SELECT name, day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
-                 "FROM %s WHERE %s IS NOT NULL AND day = %d "
+                 "SELECT name, exam_day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
+                 "FROM %s WHERE %s IS NOT NULL AND exam_day = %d "
                  ") AS ranked_data "
                  "WHERE ranking <= %d "
                  "ORDER BY ranking ASC;",
@@ -657,11 +659,11 @@ int top_sort_day_sum(int day, int person, char *text){
                  // " WHERE ranking<= %d;"
                  // ,table_name,person);
 
-                 "SELECT * FROM (  SELECT name, day, "
+                 "SELECT * FROM (  SELECT name, exam_day, "
                  "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
                  "    ( %s ) DESC) AS ranking  "
-                 "FROM %s  WHERE day = %d "
+                 "FROM %s  WHERE exam_day = %d "
                  ") AS ranked_data  "
                  "WHERE ranking <= %d  "
                  "ORDER BY ranking ASC;",
@@ -689,7 +691,7 @@ double calc_subject_average(const char *subject, int day, char *text){
 
     if (day > 0){   //日付ごと
         snprintf(text, MAX_SQL_SIZE,
-                 "SELECT AVG(%s) FROM %s WHERE day = %d AND %s IS NOT NULL;",
+                 "SELECT AVG(%s) FROM %s WHERE exam_day = %d AND %s IS NOT NULL;",
                  subject, table_name, day, subject);
     }else{          //全体
         snprintf(text, MAX_SQL_SIZE,
@@ -719,7 +721,7 @@ double calc_average(int day, char *text){
     char where_clauses[100] = "";
 
     if (day > 0){
-        snprintf(where_clauses, sizeof(where_clauses), " WHERE day = %d", day);
+        snprintf(where_clauses, sizeof(where_clauses), " WHERE exam_day = %d", day);
     }
     snprintf(text, MAX_SQL_SIZE,
             "SELECT SUM(individual_avg) / COUNT(DISTINCT name) AS overall_avg"
@@ -832,12 +834,12 @@ int under_average(int day, char *subject, char *text){
              "WITH subject_avg AS ( "
              "    SELECT AVG( %s ) AS avg_score "
              "    FROM %s "
-             "    WHERE day = %d  AND %s IS NOT NULL"
+             "    WHERE exam_day = %d  AND %s IS NOT NULL"
              " ) "
-             " SELECT p.name, p.day, p.%s, sa.avg_score "
+             " SELECT p.name, p.exam_day, p.%s, sa.avg_score "
              " FROM %s p "
              " JOIN subject_avg sa "
-             " WHERE p.day = %d AND p.%s <= sa.avg_score "
+             " WHERE p.exam_day = %d AND p.%s <= sa.avg_score "
              " ORDER BY p.%s DESC;",
              subject, table_name, day, subject, subject, table_name, day, subject, subject);
 
@@ -885,12 +887,12 @@ int under_average_sum(int day, char *text){
              // " WHERE ranking<= %d;"
              // ,table_name,person);
 
-             "SELECT * FROM (  SELECT name, day, "
+             "SELECT * FROM (  SELECT name, exam_day, "
              "  CAST( SUM( %s )  AS REAL)/ "
              "  NULLIF( (COUNT(nLang) + COUNT(math) + COUNT(Eng) + COUNT(JHist) + "
              "    COUNT(wHist) + COUNT(geo) + COUNT(phys) + COUNT(chem) + COUNT(bio)) ,0)"
              "   AS avg_score  "
-             " FROM %s  WHERE day = %d GROUP BY name, day "
+             " FROM %s  WHERE exam_day = %d GROUP BY name, exam_day "
              " )   "
              " WHERE avg_score <= %f  "
              " ORDER BY avg_score DESC; ",
@@ -921,7 +923,7 @@ int under_average_all(char *subject, char *text){
              "    FROM %s "
              "    WHERE  %s IS NOT NULL"
              " ) "
-             " SELECT p.name, p.day, p.%s, sa.avg_score "
+             " SELECT p.name, p.exam_day, p.%s, sa.avg_score "
              " FROM %s p "
              " JOIN subject_avg sa "
              " WHERE  p.%s <= sa.avg_score "
@@ -970,12 +972,12 @@ int under_average_sum_all(char *text){
              // " WHERE ranking<= %d;"
              // ,table_name,person);
 
-             "SELECT * FROM (  SELECT name, day, "
+             "SELECT * FROM (  SELECT name, exam_day, "
              "  CAST( SUM( %s )  AS REAL)/ "
              "  NULLIF( (COUNT(nLang) + COUNT(math) + COUNT(Eng) + COUNT(JHist) + "
              "    COUNT(wHist) + COUNT(geo) + COUNT(phys) + COUNT(chem) + COUNT(bio)) ,0)"
              "   AS avg_score  "
-             " FROM %s   GROUP BY name, day "
+             " FROM %s   GROUP BY name, exam_day "
              " )   "
              " WHERE avg_score <= %f  "
              " ORDER BY avg_score DESC; ",
@@ -1031,10 +1033,10 @@ double calc_stddev(const char *subject, int day, char *text){
     // 例：day指定の場合の標準偏差算出クエリ
     snprintf(text, MAX_SQL_SIZE,
              "WITH stats AS ("
-             "   SELECT AVG(%s) AS avg_val FROM %s WHERE day = %d AND %s IS NOT NULL"
+             "   SELECT AVG(%s) AS avg_val FROM %s WHERE exam_day = %d AND %s IS NOT NULL"
              "), stddev_calc AS ("
              "   SELECT sqrt(AVG((%s - stats.avg_val) * (%s - stats.avg_val))) AS std_dev "
-             "   FROM %s, stats WHERE day = %d AND %s IS NOT NULL"
+             "   FROM %s, stats WHERE exam_day = %d AND %s IS NOT NULL"
              ")"
              "SELECT std_dev FROM stddev_calc;",
              subject, table_name, day, subject,
@@ -1053,7 +1055,7 @@ double calc_median(const char *subject, int day, char *text){
              "WITH ordered_scores AS ("
              "  SELECT %s AS score, ROW_NUMBER() OVER (ORDER BY %s) AS rn, "
              "         COUNT(*) OVER () AS total_count "
-             "  FROM %s WHERE day = %d AND %s IS NOT NULL"
+             "  FROM %s WHERE exam_day = %d AND %s IS NOT NULL"
              ") "
              "SELECT AVG(score) AS median FROM ordered_scores "
              "WHERE rn IN ((total_count + 1)/2, (total_count + 2)/2);",
@@ -1152,7 +1154,7 @@ double calc_subject_std(const char *subject, int day, char *text){
 
     if (day > 0){
         snprintf(text, MAX_SQL_SIZE,
-                 "SELECT AVG((%s) * (%s)) FROM %s WHERE day = %d AND %s IS NOT NULL;",
+                 "SELECT AVG((%s) * (%s)) FROM %s WHERE exam_day = %d AND %s IS NOT NULL;",
                  subject, subject, table_name, day, subject);
     }else{
         snprintf(text, MAX_SQL_SIZE,
@@ -1193,11 +1195,11 @@ void display_deviation_scores(const char *subject, int day, char *text){
     // 各学生の得点を取得するためのクエリを作成
     if (day > 0){
         snprintf(text, MAX_SQL_SIZE,
-                 "SELECT name, day, %s FROM %s WHERE day = %d AND %s IS NOT NULL ORDER BY %s DESC;",
+                 "SELECT name, exam_day, %s FROM %s WHERE exam_day = %d AND %s IS NOT NULL ORDER BY %s DESC;",
                  subject, table_name, day, subject, subject);
     }else{
         snprintf(text, MAX_SQL_SIZE,
-                 "SELECT name, day, %s FROM %s WHERE %s IS NOT NULL ORDER BY %s DESC;",
+                 "SELECT name, exam_day, %s FROM %s WHERE %s IS NOT NULL ORDER BY %s DESC;",
                  subject, table_name, subject, subject);
     }
 #ifdef DEBUG
