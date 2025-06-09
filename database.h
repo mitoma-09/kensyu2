@@ -3,7 +3,8 @@
 
 #include <sqlite3.h>
 
-// データベースに接続し、テーブルを初期化する関数
+// データベース接続・切断
 sqlite3* connect_to_database(const char *filename);
+void close_database(sqlite3 *db);
 
-#endif // DATABASE_H
+#endif
