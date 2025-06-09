@@ -1,7 +1,7 @@
 #ifndef REFERENCE_H
 #define REFERENCE_H
 
-int reference();
+int reference(sqlite3 *database);
 
 int disp_choice1(sqlite3 *db);
 int disp_choice2(sqlite3 *db);

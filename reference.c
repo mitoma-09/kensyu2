@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include "database.h"
 
 /////////////////////////////////
 // 関数宣言
@@ -172,7 +173,8 @@ char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
 ///////////////////////////
 // main関数(reference)
 ///////////////////////////
-int reference(){
+int reference(sqlite3 *database){
+    db=database;
     isFirstCall = 1;
 
     db_name = "test.sqlite3";
