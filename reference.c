@@ -139,7 +139,7 @@ int deviation_callback(void *data, int argc, char **argv, char **colNames){
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
 
-// #define DEBUG
+ #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
@@ -170,9 +170,9 @@ char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
 #define NUM_SUBJECT 9 //教科数
 
 ///////////////////////////
-// main関数
+// main関数(reference)
 ///////////////////////////
-int main(int argc, char *argv[]){
+int reference(){
     isFirstCall = 1;
 
     db_name = "test.sqlite3";
@@ -1155,7 +1155,7 @@ double calc_subject_std(const char *subject, int day, char *text){
                  subject, subject, table_name, subject);
     }
 #ifdef DEBUG
-    DEBUG_PRINT("Executing SQL for std dev: %s", text);
+    printf("実行するSQL: %s\n", text);
 #endif
     int rc = execute_sql(text, callback_avg, &avg_sq);
     if (rc != SQLITE_OK){
@@ -1196,7 +1196,7 @@ void display_deviation_scores(const char *subject, int day, char *text){
                  subject, table_name, subject, subject);
     }
 #ifdef DEBUG
-    DEBUG_PRINT("Executing deviation SQL: %s", text);
+    printf("実行するSQL: %s\n", text);
 #endif
     // 上記クエリの結果を処理するためのコールバックに、偏差値計算に必要な情報を渡す
     DeviationContext dev_ctx;

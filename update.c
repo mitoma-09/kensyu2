@@ -12,8 +12,27 @@
 int is_katakana(const char *str) {
     while (*str) {
         unsigned char c = (unsigned char)*str;
-        if (c < 0xA4 || c > 0xDF) return 0;  // カタカナの範囲
-        str++;
+        if (c < 0xE3) {
+            // ASCIIや半角カタカナは不可
+            return 0;
+        }
+        if (c == 0xE3) {
+            // 3バイト文字の先頭バイト
+            if ((unsigned char)str[1] == 0x82) {
+                unsigned char third = (unsigned char)str[2];
+                // 0xA1 (ァ)～0xF1 (ン)、+拗音の一部をカバー
+                if (third >= 0xA1 && third <= 0xF1) {
+                    str += 3;
+                    continue;
+                } else {
+                    return 0;
+                }
+            } else {
+                return 0;
+            }
+        } else {
+            return 0;
+        }
     }
     return 1;
 }
@@ -50,7 +69,7 @@ int input_score(const char *subject) {
 }
 
 // メイン更新関数
-void update_candidate_info(sqlite3 *db) {
+void examdata(sqlite3 *db) {
     int id;
     char name[100], exam_day[100];
     const char *subjects[] = {
@@ -64,15 +83,21 @@ void update_candidate_info(sqlite3 *db) {
 
     // 氏名入力（最初に）
     while (1) {
-        printf("新しい氏名（カタカナ20文字以内）: ");
-        fgets(name, sizeof(name), stdin);
-        name[strcspn(name, "\n")] = '\0';
-        if (strlen(name) > MAX_NAME_LEN || !is_katakana(name)) {
-            printf("カタカナ20文字以内で再入力してください。\n");
-        } else {
-            break;
-        }
+    printf("新しい氏名（カタカナ20文字以内）: ");
+    fgets(name, sizeof(name), stdin);
+    name[strcspn(name, "\n")] = '\0';
+
+    // 🔽 ここがデバッグ出力です 🔽
+    printf("DEBUG: 入力された氏名 = [%s]\n", name);
+    printf("DEBUG: is_katakana(name) = %d\n", is_katakana(name));
+    printf("DEBUG: strlen(name) = %zu\n", strlen(name));
+
+    if (strlen(name) > MAX_NAME_LEN ) {
+        printf("カタカナ20文字以内で再入力してください。\n");
+    } else {
+        break;
     }
+}
 
     // 試験日入力
     while (1) {
@@ -112,10 +137,15 @@ void update_candidate_info(sqlite3 *db) {
 
     // 実行
     if (sqlite3_step(stmt) == SQLITE_DONE) {
-        printf("受験者情報を正常に更新しました。\n");
+    int changes = sqlite3_changes(db);
+    if (changes > 0) {
+        printf("受験者情報を正常に更新しました。（%d件変更）\n", changes);
     } else {
-        printf("更新に失敗しました: %s\n", sqlite3_errmsg(db));
+        printf("該当するIDが存在しませんでした。更新は行われませんでした。\n");
     }
+} else {
+    printf("更新に失敗しました: %s\n", sqlite3_errmsg(db));
+}
 
     sqlite3_finalize(stmt);
 
@@ -124,15 +154,15 @@ void update_candidate_info(sqlite3 *db) {
 
 int main(void) {
     sqlite3 *db;
-    int rc = sqlite3_open("testmanager.db", &db);  // 適宜データベース名変更
+    int rc = sqlite3_open("examdata.db", &db);  // 適宜データベース名変更
 
     if (rc != SQLITE_OK) {
         printf("データベースを開けません: %s\n", sqlite3_errmsg(db));
         return 1;
     }
 
-    update_candidate_info(db);
+    examdata(db);
 
     sqlite3_close(db);
     return 0;
-}
+} 
