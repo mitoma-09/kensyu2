@@ -5,6 +5,7 @@
 #include <sqlite3.h>
 #include <wchar.h>
 #include <ctype.h>
+#include "database.h" 
 
 #define SUBJECT_COUNT 9
 #define LIBERAL_START_INDEX 3
@@ -18,44 +19,6 @@ const int liberal_indices[] = {3,4,5};  // 文系科目インデックス
 const int science_indices[] = {6,7,8};  // 理系科目インデックス
 
 // --- DB処理 ---
-// データベースに接続し、必要であればテーブルを作成する関数
-sqlite3* connect_to_database(const char *filename) {
-    sqlite3 *db;
-
-    // データベースファイルを開く（存在しない場合は作成される）
-    if (sqlite3_open(filename, &db) != SQLITE_OK) {
-        fprintf(stderr, "データベースに接続できません: %s\n", sqlite3_errmsg(db));
-        exit(1); // エラー時はプログラムを終了
-    }
-
-    // 試験結果を保存するテーブルを作成（既に存在する場合は何もしない）
-    const char *create_table_sql =
-        "CREATE TABLE IF NOT EXISTS testtable ("  // テーブル名は "testtable"
-        "name TEXT NOT NULL, "                    // 受験者名（NULL不可）
-        "exam_day INTEGER NOT NULL, "            // 試験日（数値形式）
-        "nLang INTEGER, "                        // 国語の点数
-        "math INTEGER, "                         // 数学の点数
-        "Eng INTEGER, "                          // 英語の点数
-        "JHist INTEGER, "                        // 日本史の点数
-        "wHist INTEGER, "                        // 世界史の点数
-        "geo INTEGER, "                          // 地理の点数
-        "phys INTEGER, "                         // 物理の点数
-        "chem INTEGER, "                         // 化学の点数
-        "bio INTEGER, "                          // 生物の点数
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT"   // 自動採番されるユニークID
-        ");";
-
-    // テーブル作成用のSQL文を実行
-    char *errmsg = NULL;
-    if (sqlite3_exec(db, create_table_sql, NULL, NULL, &errmsg) != SQLITE_OK) {
-        fprintf(stderr, "テーブルを作成できません: %s\n", errmsg);
-        sqlite3_free(errmsg);
-        sqlite3_close(db);
-        exit(1);
-    }
-
-    return db; // データベース接続のポインタを返す
-}
 
 // 受験者が同じ試験日に登録されているかを確認する関数
 int is_duplicate(sqlite3 *db, const char *name, int exam_day) {
@@ -697,8 +660,8 @@ int main() {
     setlocale(LC_ALL, "ja_JP.UTF-8");
 
     sqlite3 *db;
-    // データベースに接続（ファイル名は "examdata.db"）
-    db = connect_to_database("examdata.db"); 
+    // データベースに接続
+    db = connect_to_database(DATABASE_FILENAME);
 
     // メインループ
     while (1) {
@@ -733,7 +696,10 @@ int main() {
     }
 
     // データベース接続を閉じる
-    sqlite3_close(db);
+    close_database(db);
+
+    // 終了メッセージ
+    printf("プログラムを終了します。\n");
 
     // プログラムの終了
     return 0;
