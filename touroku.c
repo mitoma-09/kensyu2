@@ -3,7 +3,6 @@
 #include <string.h>
 #include <locale.h>
 #include <sqlite3.h>
-#include <regex.h>
 #include <wchar.h>
 #include <ctype.h>
 
