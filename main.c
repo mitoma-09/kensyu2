@@ -5,7 +5,7 @@
 #include <ctype.h>  // tolower のため
 
 #include "sqlite3.h"
-#include "db_operations.h"     // DB操作関連の関数
+#include "database.h"
 
 #include "delete_operations.h"  //削除機能
 #include "reference.h"   //参照機能
@@ -19,19 +19,10 @@ int main(int argc, char **argv) {
     sqlite3 *db; // DB接続ポインタ
 
     // 2. データベース接続
-    // connect_to_database関数内で "testmanager.db" を使用していることを確認してください
-    db = connect_to_database("testmanager.db");
+    db = connect_to_database("examdata.db");
     if (db == NULL) {
         // connect_to_databaseが失敗した場合のエラー処理
         fprintf(stderr, "データベース接続に失敗しました。\n");
-        return 1; // プログラム終了
-    }
-
-    // 3. テーブル作成（初回起動時のみ実行されることを想定）
-    // create_tables関数内で必要なテーブル定義と名前が使われていることを確認してください
-    if (create_tables(db) != 0) {
-        fprintf(stderr, "テーブル作成に失敗しました。\n");
-        sqlite3_close(db);
         return 1; // プログラム終了
     }
 

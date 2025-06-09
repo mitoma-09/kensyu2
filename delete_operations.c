@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "sqlite3.h"
-#include "db_operations.h" // create_tables などで TABLE_NAME が定義されている可能性あり
+#include "database.h" // create_tables などで TABLE_NAME が定義されている可能性あり
 #include "delete_operations.h"
 
 // MAX_SQL_SIZE の定義は db_operations.h または共通ヘッダーに移動するのが理想的です
