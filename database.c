@@ -13,7 +13,7 @@ sqlite3* connect_to_database(const char *filename) {
         exit(1);
     }
 
-    // テーブル作成SQL（マクロから取得）
+    // テーブル作成SQLを取得（マクロを利用）
     const char *create_table_sql = CREATE_TABLE_SQL;
 
     // SQL実行
