@@ -13,22 +13,8 @@ sqlite3* connect_to_database(const char *filename) {
         exit(1);
     }
 
-    // テーブル作成SQL
-    const char *create_table_sql =
-        "CREATE TABLE IF NOT EXISTS testtable ("
-        "name TEXT NOT NULL, "
-        "exam_day INTEGER NOT NULL, "
-        "nLang INTEGER, "
-        "math INTEGER, "
-        "Eng INTEGER, "
-        "JHist INTEGER, "
-        "wHist INTEGER, "
-        "geo INTEGER, "
-        "phys INTEGER, "
-        "chem INTEGER, "
-        "bio INTEGER, "
-        "ID INTEGER PRIMARY KEY AUTOINCREMENT"
-        ");";
+    // テーブル作成SQL（マクロから取得）
+    const char *create_table_sql = CREATE_TABLE_SQL;
 
     // SQL実行
     char *errmsg = NULL;

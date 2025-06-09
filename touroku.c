@@ -235,7 +235,6 @@ int is_exam_date_exists(sqlite3 *db, const char *name, const char *exam_date_str
     sqlite3_bind_text(stmt, 2, exam_date_str, -1, SQLITE_STATIC);
 
     // SQL文を実行して結果を取得
-    int exists = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         int count = sqlite3_column_int(stmt, 0);
         exists = (count > 0); // 件数が0より大きければ存在

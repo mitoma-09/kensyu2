@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include "database.h"
 
 /////////////////////////////////
 // 関数宣言
@@ -172,7 +173,8 @@ char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys",
 ///////////////////////////
 // main関数(reference)
 ///////////////////////////
-int reference(){
+int reference(sqlite3 *database){
+    db=database;
     isFirstCall = 1;
 
     db_name = "test.sqlite3";
@@ -239,6 +241,7 @@ int reference(){
 
     if (c == 0){
         printf("参照機能を終了します\n");
+        CLEAR_INPUT_BUFFER();
     }else{
         // printf("もう一度やり直してください\n");
     }
@@ -472,6 +475,7 @@ int disp_choice2(void){
         break;
     case 3:
 
+    return 1;
     break;
     case 4:
 
@@ -494,6 +498,7 @@ int disp_choice2(void){
     case 9:
         printf("表示できるものがありません。\n");
         printf("最初からやり直してください\n");
+        return 1;
         break;
     case 0:
 

@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
                 break;
             case 4: // 4.参照
                 printf("結果による様々な情報を参照できます。\n");
+                reference(db);
                 //disp_choice1(db);
                 //disp_choice2(db); 
                 break;
