@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "sqlite3.h": "c"
-    }
+        "sqlite3.h": "c",
+        "database.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

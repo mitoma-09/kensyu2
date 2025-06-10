@@ -7,6 +7,7 @@
 #include "sqlite3.h"
 #include "database.h"
 
+#include "touroku.h"            //登録機能
 #include "update.h"             //変更機能
 #include "delete_operations.h"  //削除機能
 #include "reference.h"          //参照機能
@@ -62,7 +63,7 @@ int main(int argc, char **argv) {
         switch (firstNum) {
             case 1: // 1.登録
                 printf("登録処理を実行します。（未実装）\n");
-                // TODO: 登録処理を呼び出す関数を追加 (例: register_data(db); )
+                touroku_main(db);
                 break;
             case 2: // 2.変更
                 printf("受験者情報の変更ができます。（未実装）\n");

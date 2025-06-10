@@ -265,7 +265,7 @@ void trim_input(char *str) {
 
 // --- 日付のバリデーション ---
 // 日付が8桁の数字であり、存在する日付かを確認する
-int validate_date(const char *date) {
+int touroku_validate_date(const char *date) {
     // 入力が8桁の数字で構成されているかをチェック
     if (strlen(date) != 8 || strspn(date, "0123456789") != 8) {
         printf("エラー: 日付は8桁の数字で入力してください（例: 20250513）。\n");
@@ -356,7 +356,7 @@ int register_new_examinee(sqlite3 *db) {
             return 1;
         }
         getchar();
-    } while (!validate_date(exam_date_str));
+    } while (!touroku_validate_date(exam_date_str));
 
     exam_day = atoi(exam_date_str);
 
@@ -529,7 +529,7 @@ int register_existing_examinee(sqlite3 *db) {
         }
         exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
 
-        if (!validate_date(exam_date_str)) {
+        if (!touroku_validate_date(exam_date_str)) {
             printf("日付の形式が正しくありません。\n");
             continue;
         }
@@ -657,13 +657,12 @@ int register_existing_examinee(sqlite3 *db) {
 }
 
 // --- main関数 ---
-int main() {
+int touroku_main(sqlite3 *db) {
     // ロケールを日本語に設定（全角カタカナなどの文字処理のため）
-    setlocale(LC_ALL, "ja_JP.UTF-8");
+    //setlocale(LC_ALL, "ja_JP.UTF-8");
 
-    sqlite3 *db;
     // データベースに接続
-    db = connect_to_database(DATABASE_FILENAME);
+    //db = connect_to_database(DATABASE_FILENAME);
 
     // メインループ
     while (1) {
