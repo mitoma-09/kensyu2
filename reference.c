@@ -446,7 +446,7 @@ int disp_choice2(void){
 
     int b;
     double average;
-    int day=20200202;
+    int day; //=20200202;
 
     printf(" \n");
 
@@ -484,7 +484,7 @@ int disp_choice2(void){
     //char* subject=subjects[0];
 
     //    display_deviation_scores(subject,day,text);
-        printf("隠し機能：偏差値");
+        printf("隠し機能：偏差値(全日)");
         isFirstCall = 1; // ヘッダーのリセット
         for (int i = 0; i < NUM_SUBJECT; i++){
             display_deviation_scores(subjects[i], 0, text);
@@ -494,7 +494,20 @@ int disp_choice2(void){
             break;
 
     case 5:
+        break;
     case 6:
+        printf("隠し機能：偏差値(特定日)");
+
+        printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
+        scanf("%d", &day);
+        CLEAR_INPUT_BUFFER();
+        isFirstCall = 1; // ヘッダーのリセット
+        for (int i = 0; i < NUM_SUBJECT; i++){
+            display_deviation_scores(subjects[i], day, text);
+            CLEAR_INPUT_BUFFER();
+        }
+
+        break;
     case 7:
     case 8:
     case 9:
