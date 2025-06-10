@@ -152,6 +152,8 @@ void examdata(sqlite3 *db) {
 
 }
 
+/*
+// ★この main 関数は、メイン機能 (main.c など) と結合したためおそらく不要。
 int main(void) {
     sqlite3 *db;
     int rc = sqlite3_open("examdata.db", &db);  // 適宜データベース名変更
@@ -166,3 +168,4 @@ int main(void) {
     sqlite3_close(db);
     return 0;
 } 
+*/
