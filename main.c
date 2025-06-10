@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
                 break;
             case 2: // 2.変更
                 printf("受験者情報の変更ができます。（未実装）\n");
-                examdata(db);
+                //examdata(db);
                 break;
             case 3: // 3.削除
                 printf("受験者情報の削除ができます。（仮実装）\n");
