@@ -175,7 +175,7 @@ int delete_exam_data(sqlite3 *db) {
     if (confirm != 'y' && confirm != 'Y') {
         printf("削除をキャンセルしました。\n");
         return 0;
-    }
+    }//test
 
     // 3. 該当する exam_sessions レコードを削除
     // ON DELETE CASCADE が設定されている場合、関連する scores も自動的に削除される
