@@ -487,7 +487,7 @@ int disp_choice2(void){
         printf("隠し機能：偏差値");
         isFirstCall = 1; // ヘッダーのリセット
         for (int i = 0; i < NUM_SUBJECT; i++){
-            display_deviation_scores(subjects[i], day, text);
+            display_deviation_scores(subjects[i], 0, text);
             CLEAR_INPUT_BUFFER();
         }
   
@@ -1166,7 +1166,7 @@ double calc_subject_std(const char *subject, int day, char *text){
 #endif
     int rc = execute_sql(text, callback_avg, &avg_sq);
     if (rc != SQLITE_OK){
-        fprintf(stderr, "標準偏差の計算に失敗しました。\n");
+        fprintf(stderr, "%sの標準偏差の計算に失敗しました。\n",subject);
         return -1;
     }
     // 分散 = AVG(score^2) - (AVG(score))^2, 標準偏差はその平方根
@@ -1187,7 +1187,7 @@ void display_deviation_scores(const char *subject, int day, char *text){
     double avg = calc_subject_average(subject, day, text);
     double std = calc_subject_std(subject, day, text);
     if (avg < 0 || std <= 0){
-        fprintf(stderr, "平均または標準偏差の計算に失敗しました。\n");
+        fprintf(stderr, "%sの平均または標準偏差の計算に失敗しました。\n",subject);
         return;
     }
     printf("%sの平均点は %.1f, 標準偏差は %.1f です。\n", subject, avg, std);
