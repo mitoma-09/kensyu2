@@ -662,7 +662,7 @@ int register_existing_examinee(sqlite3 *db) {
 int touroku_main(sqlite3 *db);
 
 // プログラムのエントリーポイント
-int main() {
+int T_main() {
     sqlite3 *db = NULL;
 
     // SQLiteデータベースを開く
