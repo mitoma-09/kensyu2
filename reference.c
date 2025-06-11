@@ -1200,7 +1200,12 @@ void display_deviation_scores(const char *subject, int day, char *text){
     double avg = calc_subject_average(subject, day, text);
     double std = calc_subject_std(subject, day, text);
     if (avg < 0 || std <= 0){
-        fprintf(stderr, "%sの平均または標準偏差の計算に失敗しました。\n",subject);
+        fprintf(stderr, "%sの平均または標準偏差の取得に失敗しました。\n",subject);
+
+        if(std==0){
+            printf("標準偏差が0なため、全員同得点の可能性があります。\n");
+            printf("この際の偏差値は全員50.0です。\n");
+        }
         return;
     }
     printf("%sの平均点は %.1f, 標準偏差は %.1f です。\n", subject, avg, std);
