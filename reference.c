@@ -484,7 +484,7 @@ int disp_choice2(void){
     //char* subject=subjects[0];
 
     //    display_deviation_scores(subject,day,text);
-        printf("隠し機能：偏差値(全日)");
+        printf("隠し機能：偏差値(全日)\n");
         isFirstCall = 1; // ヘッダーのリセット
         for (int i = 0; i < NUM_SUBJECT; i++){
             display_deviation_scores(subjects[i], 0, text);
@@ -496,7 +496,7 @@ int disp_choice2(void){
     case 5:
         break;
     case 6:
-        printf("隠し機能：偏差値(特定日)");
+        printf("隠し機能：偏差値(特定日)\n");
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
@@ -577,19 +577,6 @@ int top_sort_sum(int person, char *text){
 
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
-                 //  "SELECT * FROM (  SELECT name, day, "
-                 //  "   (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 //  "    COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 //  "    COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score,  "
-                 //  "RANK() OVER (ORDER BY "
-                 //  "    (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 //  "     COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 //  "     COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
-                 //  "FROM %s  "
-                 //  ") AS ranked_data  "
-                 //  "WHERE ranking <= %d  "
-                 //  "ORDER BY ranking ASC;",
-                 //  table_name, person);
                  "SELECT * FROM (  SELECT name, exam_day, "
                  "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
@@ -658,20 +645,6 @@ int top_sort_day_sum(int day, int person, char *text){
 
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
-
-                 // " SELECT name, day, "
-                 // " (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) +"
-                 // " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 // " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score, "
-                 // " RANK() OVER (ORDER BY "
-                 // "(COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-                 // " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-                 // " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
-                 // " FROM %s"
-                 // " ORDER BY ranking ASC"
-                 // " WHERE ranking<= %d;"
-                 // ,table_name,person);
-
                  "SELECT * FROM (  SELECT name, exam_day, "
                  "   ( %s ) AS total_score,  "
                  "RANK() OVER (ORDER BY "
@@ -856,14 +829,6 @@ int under_average(int day, char *subject, char *text){
              " ORDER BY p.%s DESC;",
              subject, table_name, day, subject, subject, table_name, day, subject, subject);
 
-    /*"SELECT * FROM ( "
-    "SELECT name, day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
-    "FROM %s WHERE %s IS NOT NULL AND day = %d "
-    ") AS ranked_data "
-    "WHERE ranking <= %d "
-    "ORDER BY ranking ASC;"
-    //,subject,subject,table_name,subject,day,person);*/
-
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
 #endif
@@ -886,19 +851,6 @@ int under_average_sum(int day, char *text){
     printf("全体の得点が平均点以下の生徒を表示します。\n");
 
     snprintf(text, MAX_SQL_SIZE,
-
-             // " SELECT name, day, "
-             // " (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) +"
-             // " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-             // " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score, "
-             // " RANK() OVER (ORDER BY "
-             // "(COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-             // " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-             // " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
-             // " FROM %s"
-             // " ORDER BY ranking ASC"
-             // " WHERE ranking<= %d;"
-             // ,table_name,person);
 
              "SELECT * FROM (  SELECT name, exam_day, "
              "  CAST( SUM( %s )  AS REAL)/ "
