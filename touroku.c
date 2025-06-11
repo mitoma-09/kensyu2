@@ -116,6 +116,25 @@ int register_data(sqlite3 *db, const char *name, int exam_day, int scores[]) {
     return id;
 }
 
+// データベース内の最大IDを取得する関数
+int get_max_id(sqlite3 *db) {
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT MAX(id) FROM testtable;";  // 最大IDを取得するSQL
+    int max_id = 0;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "最大ID取得失敗: %s\n", sqlite3_errmsg(db));
+        return -1;  // エラー時は-1を返す
+    }
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        max_id = sqlite3_column_int(stmt, 0);  // 最大IDを取得
+    }
+    sqlite3_finalize(stmt);
+
+    return max_id;
+}
+
 // --- 名前のバリデーション ---
 // 名前が全角カタカナで構成され、20文字以内であるかを検証する
 int validate_name(const char *name) {
@@ -329,6 +348,20 @@ int is_science_registered(int reg[]) {
 
 // 新規登録用関数
 int register_new_examinee(sqlite3 *db) {
+    
+    // 最大IDを取得して登録上限をチェックする
+    int max_id = get_max_id(db);
+    if (max_id < 0) {
+        // データベースエラーがあった場合の処理
+        printf("データベースエラーにより登録できません。\n");
+        return 1;
+    }
+    if (max_id >= 1000) {
+        // 最大IDが1000以上の場合は登録不可とする
+        printf("登録可能なIDの上限(1000件)に達しました。これ以上登録できません。\n");
+        return 1;
+    }
+
     char name[61];
     char exam_date_str[9];
     int exam_day;
