@@ -657,6 +657,29 @@ int register_existing_examinee(sqlite3 *db) {
 }
 
 // --- main関数 ---
+
+// touroku_main のプロトタイプを宣言
+int touroku_main(sqlite3 *db);
+
+// プログラムのエントリーポイント
+int main() {
+    sqlite3 *db = NULL;
+
+    // SQLiteデータベースを開く
+    if (sqlite3_open("test.db", &db)) {
+        fprintf(stderr, "データベースを開くことができませんでした: %s\n", sqlite3_errmsg(db));
+        return 1;
+    }
+
+    // メイン機能を呼び出し
+    int result = touroku_main(db);
+
+    // データベースを閉じる
+    sqlite3_close(db);
+
+    return result;  // プログラムの終了コード
+}
+
 int touroku_main(sqlite3 *db) {
     // ロケールを日本語に設定（全角カタカナなどの文字処理のため）
     //setlocale(LC_ALL, "ja_JP.UTF-8");
