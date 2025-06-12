@@ -62,12 +62,12 @@ int main(int argc, char **argv) {
         // 5. 選択された操作に応じた処理
         switch (firstNum) {
             case 1: // 1.登録
-                printf("登録処理を実行します。（未実装）\n");
+                printf("登録処理を実行します。\n");
                 touroku_main(db);
                 break;
             case 2: // 2.変更
-                printf("受験者情報の変更ができます。（未実装）\n");
-                //examdata(db);
+                printf("受験者情報の変更ができます。\n");
+                examdata(db);
                 break;
             case 3: // 3.削除
                 printf("受験者情報の削除ができます。（仮実装）\n");
