@@ -483,6 +483,8 @@ int disp_choice2(void){
 
     //    display_deviation_scores(subject,day,text);
         printf("隠し機能：偏差値(全日)\n");
+
+        printf("偏差値を表示します。　対象は全ての試験です。\n");
         isFirstCall = 1; // ヘッダーのリセット
         for (int i = 0; i < NUM_SUBJECT; i++){
             display_deviation_scores(subjects[i], 0, text);
