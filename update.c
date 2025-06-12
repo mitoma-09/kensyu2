@@ -11,25 +11,9 @@
 // カタカナチェック
 int is_katakana(const char *str) {
     while (*str) {
-        unsigned char c = (unsigned char)*str;
-        if (c < 0xE3) {
-            // ASCIIや半角カタカナは不可
-            return 0;
-        }
-        if (c == 0xE3) {
-            // 3バイト文字の先頭バイト
-            if ((unsigned char)str[1] == 0x82) {
-                unsigned char third = (unsigned char)str[2];
-                // 0xA1 (ァ)～0xF1 (ン)、+拗音の一部をカバー
-                if (third >= 0xA1 && third <= 0xF1) {
-                    str += 3;
-                    continue;
-                } else {
-                    return 0;
-                }
-            } else {
-                return 0;
-            }
+        if ((unsigned char)str[0] == 0xE3 &&
+            ((unsigned char)str[1] == 0x82 || (unsigned char)str[1] == 0x83)) {
+            str += 3; // 3バイト文字なので次へ
         } else {
             return 0;
         }
