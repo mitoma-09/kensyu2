@@ -608,10 +608,6 @@ int top_sort_day(int day, int person, char *subject, char *text){
 
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
-                 //"SELECT * FROM %s WHERE %s IS NOT NULL AND %s >= (SELECT %s FROM %s "
-                 //"ORDER BY %s DESC LIMIT 1 OFFSET %d) ORDER BY %s DESC;"
-                 //,table_name,subject,subject,subject,table_name,subject, person-1,subject);
-
                  "SELECT * FROM ( "
                  "SELECT name, exam_day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
                  "FROM %s WHERE %s IS NOT NULL AND exam_day = %d "
@@ -893,14 +889,6 @@ int under_average_all(char *subject, char *text){
              " ORDER BY p.%s DESC;",
              subject, table_name, subject, subject, table_name, subject, subject);
 
-    /*"SELECT * FROM ( "
-    "SELECT name, day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
-    "FROM %s WHERE %s IS NOT NULL AND day = %d "
-    ") AS ranked_data "
-    "WHERE ranking <= %d "
-    "ORDER BY ranking ASC;"
-    //,subject,subject,table_name,subject,day,person);*/
-
 #ifdef DEBUG
     printf("実行するSQL: %s\n", text);
 #endif
@@ -921,20 +909,6 @@ int under_average_sum_all(char *text){
     printf("全体の得点が平均点以下の生徒を表示します。\n");
 
     snprintf(text, MAX_SQL_SIZE,
-
-             // " SELECT name, day, "
-             // " (COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) +"
-             // " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-             // " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) AS total_score, "
-             // " RANK() OVER (ORDER BY "
-             // "(COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + "
-             // " COALESCE(JHist, 0) + COALESCE(wHist, 0) + COALESCE(geo, 0) + "
-             // " COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)) DESC) AS ranking  "
-             // " FROM %s"
-             // " ORDER BY ranking ASC"
-             // " WHERE ranking<= %d;"
-             // ,table_name,person);
-
              "SELECT * FROM (  SELECT name, exam_day, "
              "  CAST( SUM( %s )  AS REAL)/ "
              "  NULLIF( (COUNT(nLang) + COUNT(math) + COUNT(Eng) + COUNT(JHist) + "
@@ -951,14 +925,6 @@ int under_average_sum_all(char *text){
 #endif
 
     int rc = execute_sql(text, callback2, 0);
-    /*int rc; // result codes
-    char *error_message;
-
-    rc = sqlite3_exec(db, text, callback2, 0, &error_message);
-    if (rc != SQLITE_OK){
-        fprintf(stderr, "SQLエラー: %s\n", error_message);
-        sqlite3_free(error_message);
-    }*/
 
     return 0;
 }
@@ -977,8 +943,7 @@ double calc_stddev(const char *subject, int day, char *text){
              subject, table_name, day, subject,
              subject, subject, table_name, day, subject);
 
-    // execute_sql()を利用してクエリを実行し、stddev を取得する処理を実装
-    // 例えば、callback_avg() を使って結果を得るとする
+    // execute_sql()を利用してクエリを実行しstddev を取得する
     int rc = execute_sql(text, callback_avg, &stddev);
     return stddev;
 }
@@ -1172,12 +1137,6 @@ int validate_date(int date){
     month = (date % 10000) / 100;
     day = date % 100;
 
-    // year = atoi(date);
-    // month = atoi(date + 4);
-    // day = atoi(date + 6);
-
-    // printf("%d年%d月%d日\n",year,month,day);
-
     if (month < 1 || month > 12){
         printf("エラー: 存在しない月です。\n");
         return 0;
@@ -1211,6 +1170,3 @@ int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **),
     }
     return rc;
 }
-
-// #define TOTAL_SCORE "COALESCE(nLang, 0) + COALESCE(math, 0) + COALESCE(Eng, 0) + COALESCE(JHist, 0)
-//+ COALESCE(wHist, 0) + COALESCE(geo, 0) + COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
