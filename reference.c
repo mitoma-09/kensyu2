@@ -293,11 +293,9 @@ int disp_choice1(void){
             top_sort_day(day, 5, subjects[i], text); // 別のクラスで処理
 
             printf("\n");
-            if (i != NUM_SUBJECT){
                 printf("%sは以上です。\n", subjects[i]);
 
                 CLEAR_INPUT_BUFFER();// エンターキー待機
-            }
         }
 
         break;
@@ -963,34 +961,6 @@ int under_average_sum_all(char *text){
     }*/
 
     return 0;
-}
-
-int center(char *text){
-
-    printf("得点の中央値を表示します。\n");
-
-    // snprintf(text, MAX_SQL_SIZE,
-    //     "WITH ordered_scores AS ("
-    //      "   SELECT score,"
-    //       "         ROW_NUMBER() OVER (ORDER BY score) AS rn,"
-    //        "        COUNT(*) OVER () AS total_count"
-    //       "  FROM pT"
-    //       "  WHERE day = ? AND score IS NOT NULL"
-    //   "    )"
-    //    "   SELECT AVG(score) AS median"
-    //   "    FROM ordered_scores"
-    //      " WHERE rn IN ("
-    //       "  (total_count + 1)/2,"
-    //       "  (total_count + 2)/2"
-    //      " );"
-    //       ,
-    //         text );
-
-#ifdef DEBUG
-    printf("実行するSQL: %s\n", text);
-#endif
-
-    int rc = execute_sql(text, callback2, 0);
 }
 
 double calc_stddev(const char *subject, int day, char *text){
