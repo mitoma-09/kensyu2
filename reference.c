@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "database.h"
+#include "touroku.h"
 
 /////////////////////////////////
 // 関数宣言
@@ -135,6 +136,21 @@ int deviation_callback(void *data, int argc, char **argv, char **colNames){
     return 0;
 }
 
+/*/// @brief リセット関数
+/// @param db 
+void reset_db_connection(sqlite3 **db){
+    // 既存の接続を閉じる
+    if (*db != NULL){
+        sqlite3_close(*db);
+        *db = NULL;
+    }
+
+    // 新しい接続を確立
+    if (sqlite3_open("examdata.db", db) != SQLITE_OK){
+        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(*db));
+    }
+}
+*/
 ////////////////////////////
 // グローバル変数・マクロ
 ////////////////////////////
@@ -237,6 +253,8 @@ int reference(sqlite3 *database){
 
     // 機能選択
     c = disp_choice1();
+
+    reset_db_connection(&db);
 
     // データベースを閉じる
     rc = sqlite3_close(db);
