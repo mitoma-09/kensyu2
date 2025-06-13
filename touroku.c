@@ -735,10 +735,10 @@ int touroku_main(sqlite3 *db) {
         while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
 
         // ユーザーの選択に基づく処理
-        if (choice == 0) 
+        if (choice == 0) {
             break; // 0を選択した場合、ループを終了（プログラム終了）
             reset_db_connection(&db);
-        else if (choice == 1) 
+        }else if (choice == 1) 
             register_new_examinee(db); // 新規受験者の登録処理
         else if (choice == 2) 
             register_existing_examinee(db); // 既存受験者の試験結果登録処理
