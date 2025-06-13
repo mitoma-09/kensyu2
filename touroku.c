@@ -382,13 +382,12 @@ int register_new_examinee(sqlite3 *db) {
     }
 
     do {
-        printf("試験日を8桁で入力してください（例: 20250513）: ");
-        if (scanf("%8s", exam_date_str) != 1) {
-            printf("試験日入力エラー\n");
-            while (getchar() != '\n');
+    printf("試験日を8桁で入力してください（例: 20250513）: ");
+        if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
+            printf("入力エラーが発生しました。\n");
             return 1;
         }
-        getchar();
+        exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
     } while (!touroku_validate_date(exam_date_str));
 
     exam_day = atoi(exam_date_str);
