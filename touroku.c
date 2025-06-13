@@ -287,7 +287,7 @@ void trim_input(char *str) {
 int touroku_validate_date(const char *date) {
     // 入力が8桁の数字で構成されているかをチェック
     if (strlen(date) != 8 || strspn(date, "0123456789") != 8) {
-        printf("エラー: 日付は8桁の数字で入力してください（例: 20250513）。\n");
+        printf("エラー: 試験日は8桁の数字で入力してください（例: 20250513）。\n");
         return 0;
     }
 
@@ -303,7 +303,9 @@ int touroku_validate_date(const char *date) {
 
     // 月が1～12であるかをチェック
     if (month < 1 || month > 12) {
-        printf("エラー: 存在しない月です。\n");
+        printf("エラー: 月は1から12の範囲で指定してください。\n");
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
         return 0;
     }
 
@@ -315,7 +317,9 @@ int touroku_validate_date(const char *date) {
 
     // 日がその月の日数内に収まっているかをチェック
     if (day < 1 || day > days_in_month[month - 1]) {
-        printf("エラー: 存在しない日です。\n");
+        printf("エラー: 該当する月にはその日付が存在しません。\n");
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
         return 0;
     }
 
@@ -382,13 +386,12 @@ int register_new_examinee(sqlite3 *db) {
     }
 
     do {
-        printf("試験日を8桁で入力してください（例: 20250513）: ");
-        if (scanf("%8s", exam_date_str) != 1) {
-            printf("試験日入力エラー\n");
-            while (getchar() != '\n');
+    printf("試験日を8桁で入力してください（例: 20250513）: ");
+        if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
+            printf("入力エラーが発生しました。\n");
             return 1;
         }
-        getchar();
+        exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
     } while (!touroku_validate_date(exam_date_str));
 
     exam_day = atoi(exam_date_str);
