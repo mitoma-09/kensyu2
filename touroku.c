@@ -738,11 +738,13 @@ int touroku_main(sqlite3 *db) {
         if (choice == 0) {
             reset_db_connection(&db);
             break; // 0を選択した場合、ループを終了（プログラム終了）
-        }else if (choice == 1) 
+        }else if (choice == 1){ 
+            reset_db_connection(&db);
             register_new_examinee(db); // 新規受験者の登録処理
-        else if (choice == 2) 
+        }else if (choice == 2) {
+            reset_db_connection(&db);
             register_existing_examinee(db); // 既存受験者の試験結果登録処理
-        else 
+        }else 
             printf("無効な選択です。\n"); // 不正な選択時のエラーメッセージ
     }
 
