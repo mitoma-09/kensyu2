@@ -736,8 +736,8 @@ int touroku_main(sqlite3 *db) {
 
         // ユーザーの選択に基づく処理
         if (choice == 0) {
-            break; // 0を選択した場合、ループを終了（プログラム終了）
             reset_db_connection(&db);
+            break; // 0を選択した場合、ループを終了（プログラム終了）
         }else if (choice == 1) 
             register_new_examinee(db); // 新規受験者の登録処理
         else if (choice == 2) 
