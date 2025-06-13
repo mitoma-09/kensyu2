@@ -689,6 +689,21 @@ int register_existing_examinee(sqlite3 *db) {
     return 0;
 }
 
+//DB接続をリセットする関数
+void reset_db_connection(sqlite3 **db) {
+    // 既存の接続を閉じる
+    if (*db != NULL) {
+        sqlite3_close(*db);
+        *db = NULL;
+    }
+
+    // 新しい接続を確立
+    if (sqlite3_open("examdata.db", db) != SQLITE_OK) {
+        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(*db));
+    }
+}
+
+
 // --- main関数 ---
 
 int touroku_main(sqlite3 *db) {
@@ -722,6 +737,7 @@ int touroku_main(sqlite3 *db) {
         // ユーザーの選択に基づく処理
         if (choice == 0) 
             break; // 0を選択した場合、ループを終了（プログラム終了）
+            reset_db_connection(&db);
         else if (choice == 1) 
             register_new_examinee(db); // 新規受験者の登録処理
         else if (choice == 2) 
