@@ -12,6 +12,8 @@
 int disp_choice1(void);
 int disp_choice2(void);
 
+int disp_ID(char *text);
+
 int top_sort(int person, char *subject, char *text);
 int top_sort_sum(int person, char *text);
 
@@ -278,21 +280,27 @@ int disp_choice1(void){
     int day;
     double average;
 
-    printf(" 1)試験実施日毎の各科目トップ5\n");
-    printf(" 2)試験実施日毎の全科目トップ5\n");
-    printf(" 3)試験実施日毎の全科目平均点数\n");
-    printf(" 4)試験実施日毎の各科目平均点数以下の受験者一覧\n");
-    printf(" 5)試験実施日毎の全科目平均点数以下の受験者一覧\n");
-    printf(" 6)全試験における各科目合計トップ10\n");
-    printf(" 7)全試験における全科目合計トップ10\n");
-    printf(" 8)全試験における各科目平均点数\n");
-    printf(" 9)全試験における全科目平均点数\n");
+    printf(" 1)IDに対応する試験者と試験実施日\n");
+    printf(" 2)試験実施日毎の各科目トップ5\n");
+    printf(" 3)試験実施日毎の全科目トップ5\n");
+    printf(" 4)試験実施日毎の全科目平均点数\n");
+    printf(" 5)試験実施日毎の各科目平均点数以下の受験者一覧\n");
+    printf(" 6)試験実施日毎の全科目平均点数以下の受験者一覧\n");
+    printf(" 7)全試験における各科目合計トップ10\n");
+    printf(" 8)全試験における全科目合計トップ10\n");
+    printf(" 9)全試験における各科目平均点数\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
     scanf("%d", &b);
 
     switch (b){
     case 1:
+        printf("IDに対応する試験者と試験実施日を表示します\n");
+        CLEAR_INPUT_BUFFER();
+        disp_ID(text);
+
+        break;
+    case 2:
         printf("試験実施日毎の各科目トップ5を表示します\n");
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
@@ -318,7 +326,7 @@ int disp_choice1(void){
 
         break;
 
-    case 2:
+    case 3:
         printf("試験実施日毎の全科目トップ5を表示します\n");
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
@@ -337,7 +345,7 @@ int disp_choice1(void){
 
         break;
 
-    case 3:
+    case 4:
         printf("試験実施日毎の全科目平均点数を表示します\n");
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
@@ -356,7 +364,7 @@ int disp_choice1(void){
         printf("\n");
 
         break;
-    case 4:
+    case 5:
         printf("試験実施日毎の各科目平均点数以下の受験者一覧を表示します\n");
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
@@ -382,7 +390,7 @@ int disp_choice1(void){
         }
 
         break;
-    case 5:
+    case 6:
         printf("試験実施日毎の全科目平均点数以下の受験者一覧を表示します\n");
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
@@ -398,7 +406,7 @@ int disp_choice1(void){
         printf("\n");
 
         break;
-    case 6:
+    case 7:
         printf("全試験における各科目合計トップ10を表示します\n");
         CLEAR_INPUT_BUFFER();
         for (int i = 0; i < NUM_SUBJECT; i++){  // subjectの回数ループ
@@ -409,7 +417,7 @@ int disp_choice1(void){
         }
 
         break;
-    case 7:
+    case 8:
         printf("全試験における全科目合計トップ10を表示します\n");
         printf("\n");
         isFirstCall = 1;
@@ -418,7 +426,7 @@ int disp_choice1(void){
         printf("\n");
 
         break;
-    case 8:
+    case 9:
         printf("全試験における各科目平均点数を表示します\n");
         CLEAR_INPUT_BUFFER();
         for (int i = 0; i < NUM_SUBJECT; i++){ // subjectの回数ループ
@@ -430,14 +438,7 @@ int disp_choice1(void){
         }
 
         break;
-    case 9:
-        printf("全試験における全科目平均点数を表示します\n");
-        average = calc_average(0,text); // 別のクラスで計算
-        printf("全科目の平均点は%.1fです\n", average);
-
-        printf("\n");
-
-        break;
+   
     case 0:
         /*printf(" 0)その他の機能\n");
         printf("利用したい機能を半角数字で入力してください:");*/
@@ -467,14 +468,23 @@ int disp_choice2(void){
     printf(" \n");
 
     // printf(" 1)全試験における全科目平均点数\n");
-    printf(" 1)全試験における各科目平均点数以下の受験者一覧\n");
-    printf(" 2)全試験における全科目平均点数以下の受験者一覧\n");
+    printf(" 1)全試験における全科目平均点数\n");
+    printf(" 2)全試験における各科目平均点数以下の受験者一覧\n");
+    printf(" 3)全試験における全科目平均点数以下の受験者一覧\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
     scanf("%d", &b);
 
     switch (b){
     case 1:
+        printf("全試験における全科目平均点数を表示します\n");
+        average = calc_average(0,text); // 別のクラスで計算
+        printf("全科目の平均点は%.1fです\n", average);
+
+        printf("\n");
+
+        break;
+    case 2:
         printf("全試験における各科目平均点数以下の受験者一覧を表示します\n");
         CLEAR_INPUT_BUFFER();
         for (int i = 0; i < NUM_SUBJECT; i++){    // subjectの回数ループ
@@ -484,17 +494,13 @@ int disp_choice2(void){
             CLEAR_INPUT_BUFFER();
         }
         break;
-    case 2:
+    case 3:
         printf("全試験における全科目平均点数以下の受験者一覧を表示します\n");
         isFirstCall = 1; // ヘッダーのリセット
         under_average_sum_all(text);
         printf("\n");
 
         break;
-    case 3:
-
-    return 1;
-    break;
     case 4:
 
     //char* subject=subjects[0];
@@ -555,6 +561,22 @@ int disp_choice2(void){
 ///////////////////////////
 // 参照機能
 ///////////////////////////
+
+int disp_ID(char *text){
+    printf("IDを表示します。\n" );
+
+    snprintf(text, MAX_SQL_SIZE,
+             "SELECT ID, name, exam_day FROM %s ;",
+              table_name);
+
+#ifdef DEBUG
+    printf("実行するSQL: %s\n", text);
+#endif
+
+    int rc = execute_sql(text, callback2, 0);
+
+    return 0;
+}
 
 /// @brief 科目のトップN人を表示
 /// @param person トップN人
