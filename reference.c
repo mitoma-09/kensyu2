@@ -193,11 +193,11 @@ int callback(void *NotUsed, int argc, char **argv, char **colName){
         }
         // 最後の余分なスペースを除く
         total_width--;
-        for (int i = 0; i < total_width; i++)
-        {
+        for (int i = 0; i < total_width; i++){
             putchar('-');
         }
         printf("\n");
+        //printf("--------------------------------------------\n"); // 区切り線
         isFirstCall = 0;
     }
 
@@ -251,7 +251,39 @@ int callback(void *NotUsed, int argc, char **argv, char **colName){
 int callback2(void *NotUsed, int argc, char **argv, char **colName){
     extern int isFirstCall; // 初回かどうかを判定するフラグ
 
-    if (isFirstCall){ // カラム名を表示
+    setlocale(LC_ALL, "");
+
+    int field_widths[3] = {25, 10, 6}; // name25桁、day10桁、その他6桁
+
+    if (isFirstCall){
+        for (int i = 0; i < argc; i++){
+            print_field(colName[i], field_widths[i]);
+            if (i < argc - 1)
+                putchar(' ');
+        }
+        printf("\n");
+
+        int total_width = 0;
+        for (int i = 0; i < argc; i++){
+            total_width += field_widths[i] + 1;
+        }
+        total_width--;
+        for (int i = 0; i < total_width; i++){
+            putchar('-');
+        }
+        //printf("\n");
+        printf("--------------------------------------------\n"); // 区切り線
+        isFirstCall = 0;
+    }
+
+    for (int i = 0; i < argc; i++){
+        print_field(argv[i] ? argv[i] : "-", field_widths[i]);
+        if (i < argc - 1)
+            putchar(' ');
+    }
+    printf("\n");
+
+    /*if (isFirstCall){ // カラム名を表示
         printf("%-25s %-10s %-6s \n", colName[0], colName[1], colName[2]);
         printf("--------------------------------------------\n"); // 区切り線
         isFirstCall = 0;                                          // フラグを更新
@@ -275,17 +307,34 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 ///@brief SQLコールバック関数（各受験者の得点から偏差値を計算し表示）
 int deviation_callback(void *data, int argc, char **argv, char **colNames){
     DeviationContext *ctx = (DeviationContext *)data;
+    setlocale(LC_ALL, "");
     // 期待されるカラム: name, day, 得点
     double score = 0.0;
     if (argv[2]){
         score = atof(argv[2]);
     }
+    // 偏差値の計算
     double deviation = 50 + 10 * (score - ctx->avg) / ctx->std;
-    printf("%-25s %-10s %-6s %-10.1f\n",
+    /*printf("%-25s %-10s %-6s %-10.1f\n",
            argv[0] ? argv[0] : "-",
            argv[1] ? argv[1] : "-",
            argv[2] ? argv[2] : "-",
-           deviation);
+           deviation);*/
+
+    print_field(argv[0] ? argv[0] : "-", 25);
+    putchar(' ');
+    print_field(argv[1] ? argv[1] : "-", 10);
+    putchar(' ');
+    print_field(argv[2] ? argv[2] : "-", 6);
+    putchar(' ');
+
+    // 数値型の偏差値は文字列に変換して出力
+    char deviation_str[32];
+    snprintf(deviation_str, sizeof(deviation_str), "%.1f", deviation);
+    print_field(deviation_str, 10);
+
+    printf("\n");
+
     return 0;
 }
 
