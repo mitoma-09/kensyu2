@@ -16,7 +16,17 @@
 
 int main(int argc, char **argv) {
     // 1. ロケール設定
-    setlocale(LC_ALL, "ja_JP.UTF-8");
+    if (setlocale(LC_ALL, "ja_JP.UTF-8") == NULL) {
+        printf("エラー: ロケール 'ja_JP.UTF-8' の設定に失敗しました。システムに存在しないか、名前が間違っている可能性があります。\n");
+        // 代替として setlocale(LC_ALL, ""); を試す
+        if (setlocale(LC_ALL, "") == NULL) {
+            printf("エラー: デフォルトロケールの設定にも失敗しました。\n");
+        } else {
+            printf("情報: デフォルトロケールが設定されました。\n");
+        }
+    } else {
+        printf("情報: ロケール 'ja_JP.UTF-8' が正常に設定されました。\n");
+    }
 
     sqlite3 *db; // DB接続ポインタ
 
