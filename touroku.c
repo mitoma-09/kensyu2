@@ -316,6 +316,8 @@ int touroku_validate_date(const char *date) {
     // 日がその月の日数内に収まっているかをチェック
     if (day < 1 || day > days_in_month[month - 1]) {
         printf("エラー: 該当する月にはその日付が存在しません。\n");
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
         return 0;
     }
 
