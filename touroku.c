@@ -304,6 +304,8 @@ int touroku_validate_date(const char *date) {
     // 月が1～12であるかをチェック
     if (month < 1 || month > 12) {
         printf("エラー: 月は1から12の範囲で指定してください。\n");
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
         return 0;
     }
 
