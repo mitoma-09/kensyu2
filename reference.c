@@ -41,8 +41,11 @@ int validate_date(const int date);
 int execute_sql(const char *sql, int (*callback)(void *, int, char **, char **), void *callback_data);
 
 void display_deviation_scores( const char *subject, int day, char *text);
+void display_total_deviation_scores(char *text);
 
-double calc_subject_std(const char *subject, int day, char *text);
+
+    double
+    calc_subject_std(const char *subject, int day, char *text);
 
 /// @brief データの構造体
 typedef struct data{
@@ -76,6 +79,12 @@ typedef struct{
     double avg;
     double std;
 } DeviationContext;
+
+/// @brief 合計得点に対する平均と標準偏差を計算するためのコールバック用コンテキスト
+typedef struct{
+    double avg;
+    double std;
+} TotalStats;
 
 //構造体の初回呼び出しリセット
 #define RESET_FIRST_CALL(ctx) ((ctx)->isFirstCall = 1)
@@ -308,7 +317,29 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 int deviation_callback(void *data, int argc, char **argv, char **colNames){
     DeviationContext *ctx = (DeviationContext *)data;
     setlocale(LC_ALL, "");
+    extern int isFirstCall; // 初回かどうかを判定するフラグ
+    int field_widths[4] = {25, 10, 6, 10}; // name25桁、day10桁、その他6桁
+
     // 期待されるカラム: name, day, 得点
+    if (isFirstCall){
+        print_field("name", field_widths[0]);
+        putchar(' ');
+        print_field("exam_day", field_widths[1]);
+        putchar(' ');
+        print_field("score", field_widths[2]);
+        putchar(' ');
+        print_field("deviation", field_widths[3]);
+        printf("\n");
+
+        // ヘッダーとデータを区切るための線を出力
+        int totalWidth = field_widths[0] + field_widths[1] + field_widths[2] + field_widths[3] + 3; // 各間に1つずつスペース
+        for (int i = 0; i < totalWidth; i++){
+            putchar('-');
+        }
+        printf("\n");
+        isFirstCall = 0;
+    }
+
     double score = 0.0;
     if (argv[2]){
         score = atof(argv[2]);
@@ -335,6 +366,40 @@ int deviation_callback(void *data, int argc, char **argv, char **colNames){
 
     printf("\n");
 
+    return 0;
+}
+
+/// @brief 合計得点の平均・標準偏差を計算して TotalStats 構造体に格納するコールバック関数の例
+int callback_total_stats(void *data, int argc, char **argv, char **azColName){
+    TotalStats *stats = (TotalStats *)data;
+    setlocale(LC_ALL, "");
+    extern int isFirstCall; // 初回かどうかを判定するフラグ
+    int field_widths[4] = {25, 10, 6, 10}; // name25桁、day10桁、その他6桁
+
+    if (isFirstCall){
+        print_field("name", field_widths[0]);
+        putchar(' ');
+        print_field("exam_day", field_widths[1]);
+        putchar(' ');
+        print_field("score", field_widths[2]);
+        putchar(' ');
+        print_field("deviation", field_widths[3]);
+        printf("\n");
+
+        // ヘッダーとデータを区切るための線を出力
+        int totalWidth = field_widths[0] + field_widths[1] + field_widths[2] + field_widths[3] + 3; // 各間に1つずつスペース
+        for (int i = 0; i < totalWidth; i++){
+            putchar('-');
+        }
+        printf("\n");
+        isFirstCall = 0;
+    }
+
+    if (argc >= 2){
+        // SQL の SELECT で順に avg_total, std_total を取得している前提
+        stats->avg = argv[0] ? atof(argv[0]) : 0;
+        stats->std = argv[1] ? atof(argv[1]) : 0;
+    }
     return 0;
 }
 
@@ -671,6 +736,8 @@ int disp_choice2(void){
     printf(" 1)全試験における全科目平均点数\n");
     printf(" 2)全試験における各科目平均点数以下の受験者一覧\n");
     printf(" 3)全試験における全科目平均点数以下の受験者一覧\n");
+    printf(" 4)全試験における各科目偏差値一覧\n");
+    printf(" 5)試験実施日毎の各科目偏差値一覧\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
     scanf("%d", &b);
@@ -702,36 +769,43 @@ int disp_choice2(void){
 
         break;
     case 4:
-
     //char* subject=subjects[0];
-
     //    display_deviation_scores(subject,day,text);
         printf("隠し機能：偏差値(全日)\n");
 
         printf("偏差値を表示します。　対象は全ての試験です。\n");
-        isFirstCall = 1; // ヘッダーのリセット
+        
         for (int i = 0; i < NUM_SUBJECT; i++){
+            isFirstCall = 1; // ヘッダーのリセット
             display_deviation_scores(subjects[i], 0, text);
             CLEAR_INPUT_BUFFER();
         }
-  
             break;
 
     case 5:
-        break;
-    case 6:
         printf("隠し機能：偏差値(特定日)\n");
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
         CLEAR_INPUT_BUFFER();
-        isFirstCall = 1; // ヘッダーのリセット
+        
         for (int i = 0; i < NUM_SUBJECT; i++){
+            isFirstCall = 1; // ヘッダーのリセット
             display_deviation_scores(subjects[i], day, text);
             CLEAR_INPUT_BUFFER();
         }
 
         break;
+    case 6:
+        printf("隠し機能：全科目偏差値(全日程)\n");
+
+        
+        CLEAR_INPUT_BUFFER();
+        isFirstCall = 1; // ヘッダーのリセット
+        display_total_deviation_scores(text);
+
+        break;
+
     case 7:
     case 8:
     case 9:
@@ -1362,7 +1436,61 @@ void display_deviation_scores(const char *subject, int day, char *text){
     }
 }
 
+/// @brief 合計得点に対する偏差値を計算して表示する関数
+void display_total_deviation_scores(char *text){
+    TotalStats stats = {0, 0};
 
+    /* ① 全生徒の合計得点（例：各科目の得点の総和）を算出し、
+          その平均（avg_total）と標準偏差（std_total）を計算するクエリ */
+    snprintf(text, MAX_SQL_SIZE,
+             "WITH totals AS ("
+             "  SELECT name, exam_day, SUM(%s) AS total_score "
+             "  FROM %s "
+             "  GROUP BY name, exam_day"
+             ") "
+             "SELECT AVG(total_score) AS avg_total, "
+             "       sqrt(AVG(total_score * total_score) - AVG(total_score)*AVG(total_score)) AS std_total "
+             "FROM totals;",
+             TOTAL_SCORE, table_name);
+#ifdef DEBUG
+    printf("実行するSQL (統計量計算): %s\n", text);
+#endif
+    int rc = execute_sql(text, callback_total_stats, &stats);
+    if (rc != SQLITE_OK){
+        fprintf(stderr, "合計得点の統計量（平均・標準偏差）の計算に失敗しました。\n");
+        return;
+    }
+
+    if (stats.std <= 0){
+        printf("標準偏差が0のため、全員同得点の可能性があります。偏差値は全員50.0です。\n");
+        return;
+    }
+    printf("合計得点の平均は %.1f, 標準偏差は %.1f です。\n", stats.avg, stats.std);
+    printf("偏差値（50 + 10 * (得点 - 平均)/標準偏差）を計算します。\n");
+
+    /* ② 各生徒ごとの合計得点とその偏差値を取得するクエリを作成
+          CTE内で既に個々の合計得点を算出してから、偏差値の計算を行います */
+    snprintf(text, MAX_SQL_SIZE,
+             "WITH totals AS ("
+             "  SELECT name, exam_day, SUM(%s) AS total_score "
+             "  FROM %s "
+             "  GROUP BY name, exam_day"
+             ") "
+             "SELECT name, exam_day, total_score, "
+             "       CASE WHEN %f = 0 THEN 50 "
+             "            ELSE 50 + 10 * (total_score - %f) / %f END AS deviation "
+             "FROM totals "
+             "ORDER BY deviation DESC;",
+             TOTAL_SCORE, table_name, stats.std, stats.avg, stats.std);
+#ifdef DEBUG
+    printf("実行するSQL (偏差値計算): %s\n", text);
+#endif
+    rc = execute_sql(text, deviation_callback, NULL);
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "合計得点に対する偏差値の表示に失敗しました。\n");
+    }
+}
 
 ///////////////////////////
 // 日付入力チェック
