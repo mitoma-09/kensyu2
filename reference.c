@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <sqlite3.h>
 #include <string.h>
@@ -5,6 +6,9 @@
 #include <math.h>
 #include "database.h"
 #include "touroku.h"
+#include <wchar.h>
+#include <locale.h>
+
 
 /////////////////////////////////
 // 関数宣言
@@ -76,6 +80,72 @@ typedef struct{
 //構造体の初回呼び出しリセット
 #define RESET_FIRST_CALL(ctx) ((ctx)->isFirstCall = 1)
 
+/// @brief 指定されたフィールド幅（表示桁数）に合わせて文字列を出力する関数
+/// @param str 
+/// @param field_width 
+/// @return 
+int print_with_padding(const char *str, int field_width){
+    // NULLの場合はハイフンを出力
+    if (str == NULL){
+        str = "-";
+    }
+
+    // UTF-8文字列をワイド文字列に変換
+    wchar_t wstr[256] = {0};
+    mbstowcs(wstr, str, sizeof(wstr) / sizeof(wchar_t));
+
+    // 実際の表示幅（全角文字は2などでカウントされる）
+    int disp_width = wcswidth(wstr, wcslen(wstr));
+    if (disp_width < 0)
+        disp_width = 0;
+
+    // 文字列を出力
+    printf("%s", str);
+
+    // 足りない幅分スペースを出力する
+    int pad = field_width - disp_width;
+    for (int i = 0; i < pad; i++){
+        putchar(' ');
+    }
+    return 0;
+}
+
+// 各フィールドの表示幅に合わせて正しくパディングする関数
+int print_field(const char *str, int field_width){
+    // NULLの場合はハイフンを使用
+    if (str == NULL){
+        str = "-";
+    }
+
+    // UTF-8文字列をワイド文字列に変換（wchar_tは各文字の「表示幅」を正しく扱える）
+    wchar_t wstr[256] = {0};
+    size_t len = mbstowcs(wstr, str, sizeof(wstr) / sizeof(wchar_t));
+    if (len == (size_t)-1){
+        // 変換に失敗したら、ただ文字列をそのまま出力し、バイト数でパディング
+        printf("%s", str);
+        int pad = field_width - strlen(str);
+        for (int i = 0; i < (pad > 0 ? pad : 0); i++){
+            putchar(' ');
+        }
+        return 0;
+    }
+
+    // wcswidthで実際の表示幅を測定（全角文字は2桁としてカウントされる）
+    int disp_width = wcswidth(wstr, len);
+    if (disp_width < 0)
+        disp_width = 0;
+
+    // 元の文字列を出力
+    printf("%s", str);
+
+    // フィールド幅との差分だけスペースを追加してパディング
+    int pad = field_width - disp_width;
+    for (int i = 0; i < (pad > 0 ? pad : 0); i++){
+        putchar(' ');
+    }
+    return 0;
+}
+
 /// @brief 平均点を返すコールバック関数
 /// @param data
 /// @param argc
@@ -88,6 +158,87 @@ int callback_avg(void *data, int argc, char **argv, char **colName){
     }else{
         *(double *)data = 0; // NULLの場合は0を返す
     }
+    return 0;
+}
+
+/// @brief 表示用コールバック関数
+/// @param NotUsed
+/// @param argc
+/// @param argv
+/// @param colName
+/// @return
+int callback(void *NotUsed, int argc, char **argv, char **colName){
+    extern int isFirstCall; // 初回かどうかを判定するフラグ
+
+    // ロケールを設定（多言語対応のため）
+    setlocale(LC_ALL, "");
+
+    // 各カラムの希望する表示幅
+    int field_widths[3] = {6, 15, 6}; // IDは6桁、nameは15桁、exam_dayは6桁
+
+    if (isFirstCall){
+        // ヘッダーを出力
+        for (int i = 0; i < argc; i++){
+            // ヘッダー出力（余白はパディングで調整）
+            print_field(colName[i], field_widths[i]);
+            if (i < argc - 1)
+                putchar(' '); // カラム間の区切り（必要に応じて変更）
+        }
+        printf("\n");
+
+        // ヘッダーとデータの区切り線を出力（フィールド幅の合計）
+        int total_width = 0;
+        for (int i = 0; i < argc; i++){
+            total_width += field_widths[i] + 1;
+        }
+        // 最後の余分なスペースを除く
+        total_width--;
+        for (int i = 0; i < total_width; i++)
+        {
+            putchar('-');
+        }
+        printf("\n");
+        isFirstCall = 0;
+    }
+
+    // 各行のデータを出力
+    for (int i = 0; i < argc; i++){
+        print_field(argv[i] ? argv[i] : "-", field_widths[i]);
+        if (i < argc - 1)
+            putchar(' ');
+    }
+    printf("\n");
+
+    /*if (isFirstCall){ // カラム名を表示
+        printf("%-6s %-15s %-6s \n", colName[0], colName[1], colName[2]);
+        printf("--------------------------------------------\n"); // 区切り線
+        isFirstCall = 0;                                          // フラグを更新
+    }
+
+    // printf("%-20s %-5s %-10s\n", argv[0], argv[1], argv[2]); // データを表示
+    //  データがNULLの場合の処理を追加
+    printf("%-6s  %-15s   %-6s \n",
+           argv[0] ? argv[0] : "-",
+           argv[1] ? argv[1] : "-",
+           argv[2] ? argv[2] : "-");
+
+    /*for (int i = 0; i < argc; i++) {
+        printf("%s = %s\n", colName[i], argv[i] ? argv[i] : "NULL");
+    }
+    printf("\n");*/
+    // isFirstCall = 1; // フラグをリセット
+
+    /*if (isFirstCall)
+    {
+        for (int i = 0; i < argc; i++)
+            printf("%-15s ", colName[i]);
+        printf("\n--------------------------------------------\n");
+        isFirstCall = 0;
+    }
+    for (int i = 0; i < argc; i++)
+        printf("%-15s ", (argv[i] ? argv[i] : "-"));
+    printf("\n");*/
+
     return 0;
 }
 
@@ -573,7 +724,7 @@ int disp_ID(char *text){
     printf("実行するSQL: %s\n", text);
 #endif
 
-    int rc = execute_sql(text, callback2, 0);
+    int rc = execute_sql(text, callback, 0);
 
     return 0;
 }
