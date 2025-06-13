@@ -1485,9 +1485,8 @@ void display_total_deviation_scores(char *text){
 #ifdef DEBUG
     printf("実行するSQL (偏差値計算): %s\n", text);
 #endif
-    rc = execute_sql(text, deviation_callback, NULL);
-    if (rc != SQLITE_OK)
-    {
+    rc = execute_sql(text, deviation_callback, &stats);
+    if (rc != SQLITE_OK){
         fprintf(stderr, "合計得点に対する偏差値の表示に失敗しました。\n");
     }
 }
