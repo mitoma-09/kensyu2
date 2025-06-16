@@ -294,8 +294,8 @@ void trim_input(char *str) {
     while (isspace((unsigned char)*start)) start++;
 
     // 全て空白の場合は空文字にする
-    if (*start == 0) {
-        *str = 0;
+    if (*start == '\0') {
+        *str = '\0';
         return;
     }
 
