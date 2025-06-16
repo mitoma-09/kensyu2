@@ -580,16 +580,39 @@ do {
             break;
         }
 
-        while (1) {
-            printf("他の科目を登録しますか？（y/n）: ");
-            char yn[10];
-            if (fgets(yn, sizeof(yn), stdin) == NULL) {
-                printf("入力エラー\n");
-                continue;
-            }
-            if (yn[0] == 'y' || yn[0] == 'Y') break;
-            else if (yn[0] == 'n' || yn[0] == 'N') goto registration_done;
-            else printf("yかnで答えてください。\n");
+    while (1) {
+        printf("他の科目を登録しますか？（y/n）: ");
+        char yn[10];
+        if (fgets(yn, sizeof(yn), stdin) == NULL) {
+        printf("入力エラー\n");
+        continue;
+        }
+    
+        // 改行を削除
+        yn[strcspn(yn, "\n")] = '\0';
+
+        // 全角スペースを半角スペースに変換
+        for (char *p = yn; *p; p++) {
+            if (*p == '\u3000') *p = ' ';
+        }
+
+        // 前後の空白を削除
+        char *start = yn;
+        while (*start == ' ') start++; // 前の空白をスキップ
+        char *end = yn + strlen(yn) - 1;
+        while (end > start && *end == ' ') end--; // 後ろの空白を削除
+        *(end + 1) = '\0';
+
+        // 入力内容の判定
+        if (strcmp(start, "y") == 0 || strcmp(start, "Y") == 0) {
+            // 「y」を選択した場合
+            break;
+            } else if (strcmp(start, "n") == 0 || strcmp(start, "N") == 0) {
+            // 「n」を選択した場合
+            goto registration_done;
+            } else {
+            // その他の入力に対するエラーメッセージ
+            printf("無効な入力です。yかnで答えてください。\n");
         }
     }
 
