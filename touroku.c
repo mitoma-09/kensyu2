@@ -491,94 +491,105 @@ do {
 
     int score;
     while (registered_subject_count < 5) {
-        printf("\n--- 科目一覧 ---\n");
-        for (int i = 0; i < SUBJECT_COUNT; i++) {
-            printf(" %d: %s", i + 1, subjects_ja[i]);
-            if (registered[i]) printf(" [登録済み]");
-            printf("\n");
-        }
-        printf("------------------\n");
-        printf("科目を選択してください（1〜9、終了は0）: ");
+    printf("\n--- 科目一覧 ---\n");
+    for (int i = 0; i < SUBJECT_COUNT; i++) {
+        printf(" %d: %s", i + 1, subjects_ja[i]);
+        if (registered[i]) printf(" [登録済み]");
+        printf("\n");
+    }
+    printf("------------------\n");
+    printf("科目を選択してください（1〜9、終了は0）: ");
 
-        char input[10];
-        if (fgets(input, sizeof(input), stdin) == NULL) {
-            printf("入力エラー\n");
+    char input[10];
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        printf("入力エラー\n");
+        continue;
+    }
+    input[strcspn(input, "\n")] = '\0';
+
+    char *endptr;
+    int sel = strtol(input, &endptr, 10);
+    if (*endptr != '\0' || sel < 0 || sel > 9) {
+        printf("0〜9の数字を入力してください。\n");
+        continue;
+    }
+
+    if (sel == 0) {
+        // 少なくとも1科目が登録されていない場合、エラーを表示してループを継続
+        if (registered_subject_count == 0) {
+            printf("エラー: 少なくとも1科目を登録してください。\n");
             continue;
         }
-        input[strcspn(input, "\n")] = '\0';
-
-        char *endptr;
-        int sel = strtol(input, &endptr, 10);
-        if (*endptr != '\0' || sel < 0 || sel > 9) {
-            printf("0〜9の数字を入力してください。\n");
-            continue;
-        }
-        if (sel == 0) break;
-
-        int idx = sel - 1;
-
-        if (registered[idx]) {
-            printf("科目「%s」は既に登録済みです。\n", subjects_ja[idx]);
-            continue;
-        }
-
-        int is_liberal = 0;
-        for (int i = 0; i < 3; i++) {
-            if (idx == liberal_indices[i]) is_liberal = 1;
-        }
-        if (is_liberal && is_liberal_registered(registered)) {
-            printf("文系科目は一つだけ選択可能です。\n");
-            continue;
-        }
-
-        int is_science = 0;
-        for (int i = 0; i < 3; i++) {
-            if (idx == science_indices[i]) is_science = 1;
-        }
-        if (is_science && is_science_registered(registered)) {
-            printf("理系科目は一つだけ選択可能です。\n");
-            continue;
-        }
-
-        do {
-            printf("点数を入力してください（0〜100）: ");
-    
-            char score_input[16];
-            if (fgets(score_input, sizeof(score_input), stdin) == NULL) {
-            printf("入力エラーが発生しました。\n");
-            continue;
-        }
-
-        // 改行削除
-        score_input[strcspn(score_input, "\n")] = '\0';
-
-        // 数値チェック
-        char *endptr;
-        score = strtol(score_input, &endptr, 10);
-            if (*endptr != '\0') {
-            printf("エラー: 整数を入力してください。\n");
-            continue;
-            }
-
-        // 範囲チェック
-        if (score < 0 || score > 100) {
-            printf("エラー: 点数は0〜100の範囲で入力してください。\n");
-            continue;
-        }
-
         break;
-    } while (1);
+    }
 
-        scores[idx] = score;
-        registered[idx] = 1;
-        registered_subject_count++;
+    int idx = sel - 1;
 
-        printf("科目「%s」に点数 %d を登録しました。\n", subjects_ja[idx], score);
+    if (registered[idx]) {
+        printf("科目「%s」は既に登録済みです。\n", subjects_ja[idx]);
+        continue;
+    }
 
-        if (registered_subject_count >= 5) {
-            printf("最大登録科目数に達しました。\n");
-            break;
-        }
+    int is_liberal = 0;
+    for (int i = 0; i < 3; i++) {
+        if (idx == liberal_indices[i]) is_liberal = 1;
+    }
+    if (is_liberal && is_liberal_registered(registered)) {
+        printf("文系科目は一つだけ選択可能です。\n");
+        continue;
+    }
+
+    int is_science = 0;
+    for (int i = 0; i < 3; i++) {
+        if (idx == science_indices[i]) is_science = 1;
+    }
+    if (is_science && is_science_registered(registered)) {
+        printf("理系科目は一つだけ選択可能です。\n");
+        continue;
+    }
+
+    do {
+    printf("点数を入力してください（0〜100）: ");
+
+    char score_input[16];
+    if (fgets(score_input, sizeof(score_input), stdin) == NULL) {
+        printf("入力エラーが発生しました。\n");
+        continue;
+    }
+
+    // 改行削除
+    score_input[strcspn(score_input, "\n")] = '\0';
+
+    // 数値チェック
+    char *endptr;
+    score = strtol(score_input, &endptr, 10);
+
+    // 入力エラー確認
+    if (*endptr != '\0' || score_input[0] == '\0') {
+        printf("エラー: 整数を入力してください。\n");
+        continue;
+    }
+
+    // 範囲チェック
+    if (score < 0 || score > 100) {
+        printf("エラー: 点数は0〜100の範囲で入力してください。\n");
+        continue;
+    }
+
+    break; // 正常値の場合ループを抜ける
+} while (1);
+
+
+    scores[idx] = score;
+    registered[idx] = 1;
+    registered_subject_count++;
+
+    printf("科目「%s」に点数 %d を登録しました。\n", subjects_ja[idx], score);
+
+    if (registered_subject_count >= 5) {
+        printf("最大登録科目数に達しました。\n");
+        break;
+    }
 
     while (1) {
         printf("他の科目を登録しますか？（y/n）: ");
@@ -601,6 +612,11 @@ do {
         if (yn[0] == 'y' || yn[0] == 'Y') {
             break;
         } else if (yn[0] == 'n' || yn[0] == 'N') {
+            // 少なくとも1科目が登録されていない場合、エラーを表示
+            if (registered_subject_count == 0) {
+                printf("エラー: 少なくとも1科目を登録してください。\n");
+                continue;
+            }
             goto registration_done;
         } else {
             printf("yかnで答えてください。\n");
@@ -610,17 +626,17 @@ do {
 
 registration_done:
 
-    for (int i = 0; i < SUBJECT_COUNT; i++) {
-        if (!registered[i]) scores[i] = -1;
-    }
+for (int i = 0; i < SUBJECT_COUNT; i++) {
+    if (!registered[i]) scores[i] = -1;
+}
 
-    int id = register_data(db, name, exam_day, scores);
-    if (id < 0) {
-        printf("登録に失敗しました。\n");
-        return 1;
-    }
-    printf("登録ID: %d\n", id);
-    return 0;
+int id = register_data(db, name, exam_day, scores);
+if (id < 0) {
+    printf("登録に失敗しました。\n");
+    return 1;
+}
+printf("登録ID: %d\n", id);
+return 0;
 }
 
 // 名前＋試験日の重複チェック関数
