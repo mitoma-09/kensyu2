@@ -584,37 +584,29 @@ do {
         printf("他の科目を登録しますか？（y/n）: ");
         char yn[10];
         if (fgets(yn, sizeof(yn), stdin) == NULL) {
-        printf("入力エラー\n");
-        continue;
+            printf("入力エラー\n");
+            continue;
         }
-    
-        // 改行を削除
+
+        // 改行削除
         yn[strcspn(yn, "\n")] = '\0';
 
-        // 全角スペースを半角スペースに変換
-        for (char *p = yn; *p; p++) {
-            if (*p == '\u3000') *p = ' ';
+        // 入力が1文字のみか確認
+        if (strlen(yn) != 1) {
+            printf("yかnで答えてください。\n");
+            continue;
         }
 
-        // 前後の空白を削除
-        char *start = yn;
-        while (*start == ' ') start++; // 前の空白をスキップ
-        char *end = yn + strlen(yn) - 1;
-        while (end > start && *end == ' ') end--; // 後ろの空白を削除
-        *(end + 1) = '\0';
-
-        // 入力内容の判定
-        if (strcmp(start, "y") == 0 || strcmp(start, "Y") == 0) {
-            // 「y」を選択した場合
+        // 入力チェック
+        if (yn[0] == 'y' || yn[0] == 'Y') {
             break;
-            } else if (strcmp(start, "n") == 0 || strcmp(start, "N") == 0) {
-            // 「n」を選択した場合
+        } else if (yn[0] == 'n' || yn[0] == 'N') {
             goto registration_done;
-            } else {
-            // その他の入力に対するエラーメッセージ
-            printf("無効な入力です。yかnで答えてください。\n");
+        } else {
+            printf("yかnで答えてください。\n");
         }
     }
+}
 
 registration_done:
 
@@ -629,7 +621,6 @@ registration_done:
     }
     printf("登録ID: %d\n", id);
     return 0;
-    }
 }
 
 // 名前＋試験日の重複チェック関数
