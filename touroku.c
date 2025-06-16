@@ -147,30 +147,26 @@ enum {
 int validate_name(const char *name) {
     size_t len = strlen(name);
     wchar_t wc;
-    mbstate_t state;
-    memset(&state, 0, sizeof(state));
     const char *ptr = name;
     size_t mblen;
     int char_count = 0;
 
-    // 名前が空かどうか確認
     if (len == 0) {
         return NAME_ERR_EMPTY;
     }
-
-    // バイト数で長さを超えている場合（20文字以内の保証のため）
     if (len > 60) {
         return NAME_ERR_LENGTH;
     }
 
-    // 名前の各文字を確認
     while (*ptr) {
+        mbstate_t state;
+        memset(&state, 0, sizeof(state)); // 毎回初期化
+
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
             return NAME_ERR_INVALID_CHAR;
         }
 
-        // ワイド文字が全角カタカナまたは長音符かを確認
         if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
             return NAME_ERR_INVALID_CHAR;
         }
@@ -180,10 +176,10 @@ int validate_name(const char *name) {
             return NAME_ERR_LENGTH;
         }
 
-        ptr += mblen; // 次の文字に移動
+        ptr += mblen;
     }
 
-    return NAME_VALID; // 検証成功
+    return NAME_VALID;
 }
 
 // --- 名前の存在確認 ---
