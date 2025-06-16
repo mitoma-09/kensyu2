@@ -675,16 +675,50 @@ int register_existing_examinee(sqlite3 *db) {
 
     // 名前入力＆バリデーション
     while (1) {
-        printf("名前を全角カタカナで入力してください（20文字以内）: ");
-        if (fgets(name, sizeof(name), stdin) == NULL) {
-            printf("入力エラー\n");
-            return 1;
-        }
-        name[strcspn(name, "\n")] = '\0';
-        trim_input(name);
-        if (validate_name(name)) break;
-        printf("名前の形式が正しくありません。\n");
+    printf("名前を全角カタカナで入力してください（20文字以内）: ");
+
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("入力エラーが発生しました。再度入力してください。\n");
+        // 残りの入力を読み捨てる
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+        continue;
     }
+
+    size_t len = strlen(name);
+
+    // 改行があれば削除
+    if (len > 0 && name[len - 1] == '\n') {
+        name[len - 1] = '\0';
+    } else {
+        // 改行がない = 入力が長すぎる可能性あり、残りを読み捨てる
+        int c;
+        int too_long = 0;
+        while ((c = getchar()) != '\n' && c != EOF) too_long = 1;
+        if (too_long) {
+            printf("エラー: 入力が長すぎます。20文字以内（全角カタカナ）で入力してください。\n");
+            continue;
+        }
+    }
+
+    // 前後の空白を除去
+    trim_input(name);
+
+    // 名前のバリデーション実行
+    int ret = validate_name(name);
+
+    if (ret == NAME_VALID) {
+        break;
+    } else if (ret == NAME_ERR_EMPTY) {
+        printf("エラー: 名前を入力してください。\n");
+    } else if (ret == NAME_ERR_LENGTH) {
+        printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+    } else if (ret == NAME_ERR_INVALID_CHAR) {
+        printf("エラー: 名前は全角カタカナで入力してください。\n");
+    } else {
+        printf("エラー: 名前の形式が正しくありません。\n");
+    }
+}
 
     // 名前存在チェック
     if (!is_name_exists(db, name)) {
