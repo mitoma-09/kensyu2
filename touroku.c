@@ -135,8 +135,15 @@ int get_max_id(sqlite3 *db) {
     return max_id;
 }
 
-// --- 名前のバリデーション ---
-// 名前が全角カタカナで構成され、20文字以内であるかを検証する
+// エラーコード定義
+enum {
+    NAME_VALID = 0,
+    NAME_ERR_EMPTY,
+    NAME_ERR_LENGTH,
+    NAME_ERR_INVALID_CHAR
+};
+
+// 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
 int validate_name(const char *name) {
     size_t len = strlen(name);
     wchar_t wc;
@@ -148,40 +155,35 @@ int validate_name(const char *name) {
 
     // 名前が空かどうか確認
     if (len == 0) {
-        printf("エラー: 名前を入力してください。\n");
-        return 0;
+        return NAME_ERR_EMPTY;
     }
 
     // バイト数で長さを超えている場合（20文字以内の保証のため）
     if (len > 60) {
-        printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
-        return 0;
+        return NAME_ERR_LENGTH;
     }
 
     // 名前の各文字を確認
     while (*ptr) {
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
-            printf("エラー: 無効な文字が含まれています。\n");
-            return 0;
+            return NAME_ERR_INVALID_CHAR;
         }
 
         // ワイド文字が全角カタカナまたは長音符かを確認
         if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
-            printf("エラー: 名前は全角カタカナで入力してください。\n");
-            return 0;
+            return NAME_ERR_INVALID_CHAR;
         }
 
         char_count++;
         if (char_count > 20) {
-            printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
-            return 0;
+            return NAME_ERR_LENGTH;
         }
 
         ptr += mblen; // 次の文字に移動
     }
 
-    return 1; // 検証成功
+    return NAME_VALID; // 検証成功
 }
 
 // --- 名前の存在確認 ---
