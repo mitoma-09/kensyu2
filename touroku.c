@@ -5,6 +5,7 @@
 #include <sqlite3.h>
 #include <wchar.h>
 #include <ctype.h>
+#include <errno.h>
 #include "database.h" 
 
 #define SUBJECT_COUNT 9
@@ -135,7 +136,7 @@ int get_max_id(sqlite3 *db) {
     return max_id;
 }
 
-// エラーコード定義
+// 定数とエラーコード
 enum {
     NAME_VALID = 0,
     NAME_ERR_EMPTY,
@@ -143,7 +144,7 @@ enum {
     NAME_ERR_INVALID_CHAR
 };
 
-// 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
+// 名前の検証関数
 int validate_name(const char *name) {
     wchar_t wc;
     const char *ptr = name;
@@ -157,16 +158,19 @@ int validate_name(const char *name) {
         return NAME_ERR_EMPTY;
     }
 
+    // デバッグ: 入力された名前を表示
+    printf("[DEBUG] 入力された名前: '%s', 長さ: %zu\n", name, strlen(name));
+
     // 文字列を1文字ずつ検証
     while (*ptr) {
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
-            printf("[DEBUG] 無効な文字エラー: バイト=%zu\n", mblen);
+            printf("[DEBUG] 無効な文字エラー: バイト=%zu, errno=%d\n", mblen, errno);
             return NAME_ERR_INVALID_CHAR;
         }
 
         // 全角カタカナの範囲判定（長音符はOK）
-        if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
+        if (!((wc >= 0x30A1 && wc <= 0x30FA) || wc == 0x30FC)) {
             printf("[DEBUG] 無効な文字: '%lc'\n", wc);
             return NAME_ERR_INVALID_CHAR;
         }
@@ -178,10 +182,11 @@ int validate_name(const char *name) {
             return NAME_ERR_LENGTH;
         }
 
-        ptr += mblen;  // 次の文字へ進む
+        // 次の文字へ進む
+        ptr += mblen;
     }
 
-    // 正常終了
+    // デバッグ: 正常終了
     printf("[DEBUG] 文字数チェックOK: %d\n", char_count);
     return NAME_VALID;
 }
@@ -280,32 +285,28 @@ int is_exam_date_exists(sqlite3 *db, const char *name, const char *exam_date_str
     return exists;
 }
 
-// --- 入力のトリム ---
+// 入力をトリムする関数
 void trim_input(char *str) {
     char *start = str;
     char *end;
 
-    // 先頭の空白・制御文字をスキップ
-    while (*start && (unsigned char)*start <= 0x20) {
-        start++;
-    }
+    // 先頭の空白をスキップ
+    while (isspace((unsigned char)*start)) start++;
 
-    // 全て制御文字の場合は空文字にする
-    if (*start == '\0') {
-        *str = '\0';
+    // 全て空白の場合は空文字にする
+    if (*start == 0) {
+        *str = 0;
         return;
     }
 
-    // 末尾の空白・制御文字を削除
+    // 末尾の空白を削除
     end = start + strlen(start) - 1;
-    while (end > start && (unsigned char)*end <= 0x20) {
-        end--;
-    }
+    while (end > start && isspace((unsigned char)*end)) end--;
 
     // 終端文字設定
     *(end + 1) = '\0';
 
-    // 先頭の空白削除で先頭ポインタが変わった場合は文字列を左詰め
+    // 左詰めコピー
     if (start != str) {
         memmove(str, start, strlen(start) + 1);
     }
@@ -404,25 +405,37 @@ int register_new_examinee(sqlite3 *db) {
 
     while (1) {
     printf("名前を全角カタカナで入力してください（20文字以内）: ");
-    
+
     if (fgets(name, sizeof(name), stdin) == NULL) {
         printf("入力エラーが発生しました。再度入力してください。\n");
-        // 入力バッファクリア（念のため）
         int c;
         while ((c = getchar()) != '\n' && c != EOF);
         continue;
     }
 
-    // 改行文字を削除
-    name[strcspn(name, "\n")] = '\0';
+    size_t len = strlen(name);
 
-    // 前後の空白削除（もしtrim_inputが実装されていれば）
+    // 改行があるかチェック
+    if (len > 0 && name[len - 1] == '\n') {
+        name[len - 1] = '\0';  // 改行削除
+    } else {
+        // 改行がなければ入力が長すぎてバッファに入りきってないので
+        // 残りの入力を読み捨てる
+        int c;
+        int too_long = 0;
+        while ((c = getchar()) != '\n' && c != EOF) too_long = 1;
+        if (too_long) {
+            printf("エラー: 入力が長すぎます。20文字以内（全角カタカナ）で入力してください。\n");
+            continue;  // 再入力へ
+        }
+    }
+
     trim_input(name);
 
     int ret = validate_name(name);
 
     if (ret == NAME_VALID) {
-        break;  // 正常に通ったらループ脱出
+        break;
     } else if (ret == NAME_ERR_EMPTY) {
         printf("エラー: 名前を入力してください。\n");
     } else if (ret == NAME_ERR_LENGTH) {
@@ -430,25 +443,37 @@ int register_new_examinee(sqlite3 *db) {
     } else if (ret == NAME_ERR_INVALID_CHAR) {
         printf("エラー: 名前は全角カタカナで入力してください。\n");
     } else {
-        printf("名前の形式が正しくありません。\n");
+        printf("エラー: 名前の形式が正しくありません。\n");
     }
 }
 
-    do {
+do {
     printf("試験日を8桁で入力してください（例: 20250513）: ");
-        if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
-            printf("入力エラーが発生しました。\n");
-            return 1;
-        }
-        exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
-    } while (!touroku_validate_date(exam_date_str));
+    if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
+        printf("入力エラーが発生しました。\n");
+        return 1;
+    }
+    exam_date_str[strcspn(exam_date_str, "\n")] = '\0'; // 改行文字削除
+
+    if (!touroku_validate_date(exam_date_str)) {
+        printf("エラー: 日付形式が正しくありません。8桁の数字を入力してください（例: 20250513）。\n");
+        continue;
+    }
 
     exam_day = atoi(exam_date_str);
 
     if (is_duplicate(db, name, exam_day)) {
         printf("エラー: 同じ名前と試験日のデータが既に存在します。\n");
-        return 1;
+        printf("再入力しますか？ [y/N]: ");
+        char response[4];
+        fgets(response, sizeof(response), stdin);
+        if (tolower(response[0]) != 'y') {
+            return 1;
+        }
+    } else {
+        break;
     }
+} while (1);
 
     int score;
     while (registered_subject_count < 5) {
