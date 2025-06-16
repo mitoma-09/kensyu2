@@ -150,13 +150,13 @@ int validate_name(const char *name) {
     const char *ptr = name;
     size_t mblen;
     int char_count = 0;
-    mbstate_t state;          // 状態をループの外で宣言
-    memset(&state, 0, sizeof(state));  // 初期化は1回だけ
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
 
     if (len == 0) {
         return NAME_ERR_EMPTY;
     }
-    if (len > 60) {  // バイト長で60を超えたら長すぎる判定（おおよそ20文字）
+    if (len > 60) {
         return NAME_ERR_LENGTH;
     }
 
@@ -165,19 +165,20 @@ int validate_name(const char *name) {
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
             return NAME_ERR_INVALID_CHAR;
         }
-        // 全角カタカナの範囲判定（長音符はOK）
         if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
             return NAME_ERR_INVALID_CHAR;
         }
 
         char_count++;
         if (char_count > 20) {
+            printf("[DEBUG] 文字数超過: %d\n", char_count);
             return NAME_ERR_LENGTH;
         }
 
         ptr += mblen;
     }
 
+    printf("[DEBUG] 文字数チェックOK: %d\n", char_count);
     return NAME_VALID;
 }
 
