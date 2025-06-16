@@ -840,37 +840,57 @@ int touroku_main(sqlite3 *db) {
 
     // メインループ
     while (1) {
-        // メニューの表示
+    // メニューを表示
         printf("\n受験者情報管理\n");
-        printf("1: 新規登録\n"); // 新しい受験者の登録
-        printf("2: 既登録者試験結果追加登録\n"); // 既存受験者への試験結果の追加
-        printf("0: 終了\n"); // プログラムを終了
+        printf("1: 新規登録\n");
+        printf("2: 既登録者試験結果追加登録\n");
+        printf("0: 終了\n");
         printf("選択してください: ");
 
-        int choice;
-        // ユーザーの入力を取得
-        if (scanf("%d", &choice) != 1) {
-            // 入力エラー時の処理
+        // 入力用バッファ
+        char input[10];
+        // fgetsで1行読み込む。失敗したらエラー表示してループ続行
+        if (fgets(input, sizeof(input), stdin) == NULL) {
             printf("入力エラー\n");
-            int c;
-            while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
             continue;
         }
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF); // 入力バッファをクリア
 
-        // ユーザーの選択に基づく処理
+        // fgetsは改行も読み込むので、それを取り除く
+        input[strcspn(input, "\n")] = '\0';
+
+        // 入力文字列がすべて数字かどうか判定するフラグ
+        int valid = 1;
+        for (size_t i = 0; i < strlen(input); i++) {
+            // isdigitで数字かチェック。数字以外があればvalid=0に
+            if (!isdigit((unsigned char)input[i])) {
+                valid = 0;
+                break;
+            }
+        }
+
+        // 空入力や数字以外が混じっていたらエラー表示してやり直し
+        if (!valid || strlen(input) == 0) {
+            printf("数字のみを入力してください。\n");
+            continue;
+        }
+
+        // 数字文字列を整数に変換
+        int choice = atoi(input);
+
+        // 選択肢に応じた処理
         if (choice == 0) {
+            reset_db_connection(&db);  // DB接続リセット
+            break;                    // ループ抜けて終了
+        } else if (choice == 1) {
             reset_db_connection(&db);
-            break; // 0を選択した場合、ループを終了（プログラム終了）
-        }else if (choice == 1){ 
+            register_new_examinee(db);  // 新規登録処理呼び出し
+        } else if (choice == 2) {
             reset_db_connection(&db);
-            register_new_examinee(db); // 新規受験者の登録処理
-        }else if (choice == 2) {
-            reset_db_connection(&db);
-            register_existing_examinee(db); // 既存受験者の試験結果登録処理
-        }else 
-            printf("無効な選択です。\n"); // 不正な選択時のエラーメッセージ
+            register_existing_examinee(db);  // 既登録者試験結果追加処理呼び出し
+        } else {
+            // 0,1,2以外の数字は無効としてエラー表示
+            printf("無効な選択です。\n");
+        }
     }
 
     // データベース接続を閉じる
