@@ -145,29 +145,28 @@ enum {
 
 // 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
 int validate_name(const char *name) {
+    if (name == NULL) return NAME_ERR_EMPTY;
+
     size_t len = strlen(name);
-    wchar_t wc;
+    if (len == 0) return NAME_ERR_EMPTY;
+
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+
     const char *ptr = name;
+    wchar_t wc;
     size_t mblen;
     int char_count = 0;
 
-    if (len == 0) {
-        return NAME_ERR_EMPTY;
-    }
-    if (len > 60) {
-        return NAME_ERR_LENGTH;
-    }
-
     while (*ptr) {
-        mbstate_t state;
-        memset(&state, 0, sizeof(state)); // 毎回初期化
-
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
             return NAME_ERR_INVALID_CHAR;
         }
+        if (mblen == 0) break; // 終端
 
-        if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
+        // 全角カタカナの範囲チェック
+        if (!(wc >= 0x30A0 && wc <= 0x30FF)) {
             return NAME_ERR_INVALID_CHAR;
         }
 
@@ -175,8 +174,11 @@ int validate_name(const char *name) {
         if (char_count > 20) {
             return NAME_ERR_LENGTH;
         }
-
         ptr += mblen;
+    }
+
+    if (char_count == 0) {
+        return NAME_ERR_EMPTY;
     }
 
     return NAME_VALID;
@@ -277,19 +279,30 @@ int is_exam_date_exists(sqlite3 *db, const char *name, const char *exam_date_str
 }
 
 // --- 入力のトリム ---
-// 文字列の先頭と末尾の空白を削除する
 void trim_input(char *str) {
+    char *start = str;
     char *end;
 
-    // 先頭の空白を削除
-    while (isspace((unsigned char)*str)) str++;
-    if (*str == 0) return;
+    // 先頭の空白をスキップ
+    while (isspace((unsigned char)*start)) start++;
+
+    // 全て空白の場合は空文字にする
+    if (*start == 0) {
+        *str = 0;
+        return;
+    }
 
     // 末尾の空白を削除
-    end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end)) end--;
+    end = start + strlen(start) - 1;
+    while (end > start && isspace((unsigned char)*end)) end--;
 
-    *(end + 1) = '\0'; // 終端文字を設定
+    // 終端文字設定
+    *(end + 1) = '\0';
+
+    // 先頭の空白を削除するために文字列を左詰めコピー
+    if (start != str) {
+        memmove(str, start, strlen(start) + 1); // +1は終端文字分
+    }
 }
 
 // --- 日付のバリデーション ---
@@ -385,16 +398,25 @@ int register_new_examinee(sqlite3 *db) {
 
     while (1) {
     printf("名前を全角カタカナで入力してください（20文字以内）: ");
+    
     if (fgets(name, sizeof(name), stdin) == NULL) {
-        printf("入力エラー\n");
-        return 1;
+        printf("入力エラーが発生しました。再度入力してください。\n");
+        // 入力バッファクリア（念のため）
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+        continue;
     }
+
+    // 改行文字を削除
     name[strcspn(name, "\n")] = '\0';
+
+    // 前後の空白削除（もしtrim_inputが実装されていれば）
     trim_input(name);
 
     int ret = validate_name(name);
+
     if (ret == NAME_VALID) {
-        break;
+        break;  // 正常に通ったらループ脱出
     } else if (ret == NAME_ERR_EMPTY) {
         printf("エラー: 名前を入力してください。\n");
     } else if (ret == NAME_ERR_LENGTH) {
@@ -404,7 +426,7 @@ int register_new_examinee(sqlite3 *db) {
     } else {
         printf("名前の形式が正しくありません。\n");
     }
-    }
+}
 
     do {
     printf("試験日を8桁で入力してください（例: 20250513）: ");
