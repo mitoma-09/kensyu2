@@ -542,13 +542,32 @@ do {
 
         do {
             printf("点数を入力してください（0〜100）: ");
-            if (scanf("%d", &score) != 1) {
-                printf("整数を入力してください。\n");
-                while (getchar() != '\n');
-                continue;
+    
+            char score_input[16];
+            if (fgets(score_input, sizeof(score_input), stdin) == NULL) {
+            printf("入力エラーが発生しました。\n");
+            continue;
+        }
+
+        // 改行削除
+        score_input[strcspn(score_input, "\n")] = '\0';
+
+        // 数値チェック
+        char *endptr;
+        score = strtol(score_input, &endptr, 10);
+            if (*endptr != '\0') {
+            printf("エラー: 整数を入力してください。\n");
+            continue;
             }
-            while (getchar() != '\n');
-        } while (!validate_score(score));
+
+        // 範囲チェック
+        if (score < 0 || score > 100) {
+            printf("エラー: 点数は0〜100の範囲で入力してください。\n");
+            continue;
+        }
+
+        break;
+    } while (1);
 
         scores[idx] = score;
         registered[idx] = 1;
