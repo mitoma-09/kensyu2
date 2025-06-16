@@ -423,7 +423,7 @@ void reset_db_connection(sqlite3 **db){
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
 
-// #define DEBUG
+ #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
@@ -483,7 +483,9 @@ int reference(sqlite3 *database){
 
     // データベースファイルをオープン
     rc = sqlite3_open(db_name, &db);
+#ifdef DEBUG
     fprintf(stdout, "Open/Create status:[%s] [%s]\n", db_name, sqlite3_errmsg(db));
+#endif
     if (rc){
         sqlite3_close(db);
         printf("データベースを開けません。");
@@ -491,8 +493,9 @@ int reference(sqlite3 *database){
     }
 
     // テーブル作成
+#ifdef DEBUG
     sprintf(sql_statement, "CREATE TABLE IF NOT EXISTS %s( %s )", table_name, table);
-
+#endif
     // SQLステートメントを実行
     rc = sqlite3_exec(db, sql_statement, NULL, NULL, &error_message);
 
