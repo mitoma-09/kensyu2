@@ -388,7 +388,7 @@ int register_new_examinee(sqlite3 *db) {
     }
 
     char name[61];
-    char exam_date_str[9];
+    char exam_date_str[16];
     int exam_day;
     int scores[SUBJECT_COUNT];
     int registered[SUBJECT_COUNT] = {0};
@@ -450,6 +450,9 @@ do {
 
     // 前後の空白除去
     trim_input(exam_date_str);
+
+    // デバッグ出力：入力文字列と長さを表示
+    printf("[DEBUG] 入力文字列: '%s', 長さ: %zu\n", exam_date_str, strlen(exam_date_str));
 
     // 入力文字数チェック（8文字ピッタリでなければエラー）
     if (strlen(exam_date_str) != 8) {
