@@ -4,10 +4,21 @@
 #include <string.h>
 #include <stdlib.h>
 
+void trim_input(char *str) {
+    char *end;
+    end = str + strlen(str) - 1;
+    while (end >= str && (*end == ' ' || *end == '\n' || *end == '\r' || *end == '\t')) {
+        *end = '\0';
+        end--;
+    }
+}
+
 int main() {
     setlocale(LC_ALL, "ja_JP.UTF-8");
 
-    const char *test_str = "アイウエオカキクケコサシスセソタチツテトナ";
+    char test_str[] = "アイウエオカキクケコサシスセソタチツテトナ\n";
+    trim_input(test_str);
+
     const char *ptr = test_str;
     wchar_t wc;
     size_t mblen;
@@ -21,6 +32,9 @@ int main() {
 
     for (size_t i = 0; i < strlen(test_str); i++) {
         printf("Byte[%zu]: %02X\n", i, (unsigned char)test_str[i]);
+        if (test_str[i] < 0x20 || test_str[i] == 0x7F) {
+            printf("不可視文字検出: Byte[%zu]: %02X\n", i, (unsigned char)test_str[i]);
+        }
     }
 
     while (*ptr) {
