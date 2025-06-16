@@ -388,15 +388,26 @@ int register_new_examinee(sqlite3 *db) {
     int registered_subject_count = 0;
 
     while (1) {
-        printf("名前を全角カタカナで入力してください（20文字以内）: ");
-        if (fgets(name, sizeof(name), stdin) == NULL) {
-            printf("入力エラー\n");
-            return 1;
-        }
-        name[strcspn(name, "\n")] = '\0';
-        trim_input(name);
-        if (validate_name(name)) break;
+    printf("名前を全角カタカナで入力してください（20文字以内）: ");
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("入力エラー\n");
+        return 1;
+    }
+    name[strcspn(name, "\n")] = '\0';
+    trim_input(name);
+
+    int ret = validate_name(name);
+    if (ret == NAME_VALID) {
+        break;
+    } else if (ret == NAME_ERR_EMPTY) {
+        printf("エラー: 名前を入力してください。\n");
+    } else if (ret == NAME_ERR_LENGTH) {
+        printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+    } else if (ret == NAME_ERR_INVALID_CHAR) {
+        printf("エラー: 名前は全角カタカナで入力してください。\n");
+    } else {
         printf("名前の形式が正しくありません。\n");
+    }
     }
 
     do {
