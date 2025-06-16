@@ -444,11 +444,27 @@ do {
         printf("入力エラーが発生しました。\n");
         return 1;
     }
-    exam_date_str[strcspn(exam_date_str, "\n")] = '\0'; // 改行文字削除
+
+    // 改行削除
+    exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
+
+    // 前後の空白除去
+    trim_input(exam_date_str);
+
+    // 入力文字数チェック（8文字ピッタリでなければエラー）
+    if (strlen(exam_date_str) != 8) {
+        printf("エラー: 試験日は8桁の数字で入力してください（例: 20250513）。\n");
+        continue;
+    }
+
+    // 8桁が数字かどうかをチェック
+    if (strspn(exam_date_str, "0123456789") != 8) {
+        printf("エラー: 試験日は8桁の数字で入力してください（例: 20250513）。\n");
+        continue;
+    }
 
     if (!touroku_validate_date(exam_date_str)) {
-        printf("エラー: 日付形式が正しくありません。8桁の数字を入力してください（例: 20250513）。\n");
-        continue;
+        continue;  // 日付の妥当性チェックでNGなら再入力
     }
 
     exam_day = atoi(exam_date_str);
@@ -456,14 +472,17 @@ do {
     if (is_duplicate(db, name, exam_day)) {
         printf("エラー: 同じ名前と試験日のデータが既に存在します。\n");
         printf("再入力しますか？ [y/N]: ");
-        char response[4];
-        fgets(response, sizeof(response), stdin);
+        char response[8];
+        if (fgets(response, sizeof(response), stdin) == NULL) {
+            continue;
+        }
         if (tolower(response[0]) != 'y') {
             return 1;
         }
-    } else {
-        break;
+        continue;
     }
+
+    break;
 } while (1);
 
     int score;
