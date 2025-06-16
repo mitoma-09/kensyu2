@@ -947,7 +947,7 @@ int touroku_main(sqlite3 *db) {
     close_database(db);
 
     // 終了メッセージ
-    printf("プログラムを終了します。\n");
+    printf("登録機能を終了します。\n");
 
     // プログラムの終了
     return 0;
