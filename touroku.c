@@ -135,41 +135,51 @@ int get_max_id(sqlite3 *db) {
     return max_id;
 }
 
-// --- 名前のバリデーション ---
-// 名前が全角カタカナで構成され、20文字以内であるかを検証する
+// エラーコード定義
+enum {
+    NAME_VALID = 0,
+    NAME_ERR_EMPTY,
+    NAME_ERR_LENGTH,
+    NAME_ERR_INVALID_CHAR
+};
+
+// 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
 int validate_name(const char *name) {
     size_t len = strlen(name);
-
-    // 名前の長さをチェック（最大60バイト以内）
-    if (len > 60) { // UTF-8エンコーディングで全角カタカナは最大3バイトなので、20文字は60バイト以内
-        printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
-        return 0;
-    }
-
-    // 名前が全角カタカナで構成されているかを確認
     wchar_t wc;
-    mbstate_t state;
-    memset(&state, 0, sizeof(state));
     const char *ptr = name;
     size_t mblen;
+    int char_count = 0;
 
-    while (*ptr) {
-        // マルチバイト文字をワイド文字に変換
-        mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
-        if (mblen == (size_t)-1 || mblen == (size_t)-2) {
-            printf("エラー: 無効な文字が含まれています。\n");
-            return 0;
-        }
-
-        // 文字が全角カタカナまたは長音符かをチェック
-        if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
-            printf("エラー: 名前は全角カタカナで入力してください。\n");
-            return 0;
-        }
-        ptr += mblen; // 次の文字に移動
+    if (len == 0) {
+        return NAME_ERR_EMPTY;
+    }
+    if (len > 60) {
+        return NAME_ERR_LENGTH;
     }
 
-    return 1; // 検証成功
+    while (*ptr) {
+        mbstate_t state;
+        memset(&state, 0, sizeof(state)); // 毎回初期化
+
+        mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
+        if (mblen == (size_t)-1 || mblen == (size_t)-2) {
+            return NAME_ERR_INVALID_CHAR;
+        }
+
+        if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
+            return NAME_ERR_INVALID_CHAR;
+        }
+
+        char_count++;
+        if (char_count > 20) {
+            return NAME_ERR_LENGTH;
+        }
+
+        ptr += mblen;
+    }
+
+    return NAME_VALID;
 }
 
 // --- 名前の存在確認 ---
@@ -374,15 +384,26 @@ int register_new_examinee(sqlite3 *db) {
     int registered_subject_count = 0;
 
     while (1) {
-        printf("名前を全角カタカナで入力してください（20文字以内）: ");
-        if (fgets(name, sizeof(name), stdin) == NULL) {
-            printf("入力エラー\n");
-            return 1;
-        }
-        name[strcspn(name, "\n")] = '\0';
-        trim_input(name);
-        if (validate_name(name)) break;
+    printf("名前を全角カタカナで入力してください（20文字以内）: ");
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("入力エラー\n");
+        return 1;
+    }
+    name[strcspn(name, "\n")] = '\0';
+    trim_input(name);
+
+    int ret = validate_name(name);
+    if (ret == NAME_VALID) {
+        break;
+    } else if (ret == NAME_ERR_EMPTY) {
+        printf("エラー: 名前を入力してください。\n");
+    } else if (ret == NAME_ERR_LENGTH) {
+        printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+    } else if (ret == NAME_ERR_INVALID_CHAR) {
+        printf("エラー: 名前は全角カタカナで入力してください。\n");
+    } else {
         printf("名前の形式が正しくありません。\n");
+    }
     }
 
     do {
