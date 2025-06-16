@@ -144,8 +144,8 @@ enum {
 };
 
 // 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
+// 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
 int validate_name(const char *name) {
-    size_t len = strlen(name);
     wchar_t wc;
     const char *ptr = name;
     size_t mblen;
@@ -153,31 +153,36 @@ int validate_name(const char *name) {
     mbstate_t state;
     memset(&state, 0, sizeof(state));
 
-    if (len == 0) {
+    // 空文字チェック
+    if (*name == '\0') {
         return NAME_ERR_EMPTY;
     }
-    if (len > 60) {
-        return NAME_ERR_LENGTH;
-    }
 
+    // 文字列を1文字ずつ検証
     while (*ptr) {
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
-            return NAME_ERR_INVALID_CHAR;
-        }
-        if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
+            printf("[DEBUG] 無効な文字エラー: バイト=%zu\n", mblen);
             return NAME_ERR_INVALID_CHAR;
         }
 
+        // 全角カタカナの範囲判定（長音符はOK）
+        if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
+            printf("[DEBUG] 無効な文字: '%lc'\n", wc);
+            return NAME_ERR_INVALID_CHAR;
+        }
+
+        // 文字数カウント
         char_count++;
         if (char_count > 20) {
             printf("[DEBUG] 文字数超過: %d\n", char_count);
             return NAME_ERR_LENGTH;
         }
 
-        ptr += mblen;
+        ptr += mblen;  // 次の文字へ進む
     }
 
+    // 正常終了
     printf("[DEBUG] 文字数チェックOK: %d\n", char_count);
     return NAME_VALID;
 }
