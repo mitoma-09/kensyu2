@@ -629,7 +629,7 @@ registration_done:
     }
     printf("登録ID: %d\n", id);
     return 0;
-}
+    }
 }
 
 // 名前＋試験日の重複チェック関数
