@@ -139,33 +139,45 @@ int get_max_id(sqlite3 *db) {
 // 名前が全角カタカナで構成され、20文字以内であるかを検証する
 int validate_name(const char *name) {
     size_t len = strlen(name);
-
-    // 名前の長さをチェック（最大60バイト以内）
-    if (len > 60) { // UTF-8エンコーディングで全角カタカナは最大3バイトなので、20文字は60バイト以内
-        printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
-        return 0;
-    }
-
-    // 名前が全角カタカナで構成されているかを確認
     wchar_t wc;
     mbstate_t state;
     memset(&state, 0, sizeof(state));
     const char *ptr = name;
     size_t mblen;
+    int char_count = 0;
 
+    // 名前が空かどうか確認
+    if (len == 0) {
+        printf("エラー: 名前を入力してください。\n");
+        return 0;
+    }
+
+    // バイト数で長さを超えている場合（20文字以内の保証のため）
+    if (len > 60) {
+        printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+        return 0;
+    }
+
+    // 名前の各文字を確認
     while (*ptr) {
-        // マルチバイト文字をワイド文字に変換
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
             printf("エラー: 無効な文字が含まれています。\n");
             return 0;
         }
 
-        // 文字が全角カタカナまたは長音符かをチェック
+        // ワイド文字が全角カタカナまたは長音符かを確認
         if (!((wc >= 0x30A0 && wc <= 0x30FF) || wc == 0x30FC)) {
             printf("エラー: 名前は全角カタカナで入力してください。\n");
             return 0;
         }
+
+        char_count++;
+        if (char_count > 20) {
+            printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+            return 0;
+        }
+
         ptr += mblen; // 次の文字に移動
     }
 
