@@ -630,6 +630,7 @@ registration_done:
     printf("登録ID: %d\n", id);
     return 0;
 }
+}
 
 // 名前＋試験日の重複チェック関数
 int is_duplicate_examinee(sqlite3 *db, const char *name, int exam_day) {
