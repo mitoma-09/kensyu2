@@ -463,6 +463,7 @@ do {
         continue;
     }
 
+    // 日付の妥当性を確認
     if (!touroku_validate_date(exam_date_str)) {
         continue;  // 日付の妥当性チェックでNGなら再入力
     }
