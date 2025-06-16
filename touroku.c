@@ -144,7 +144,6 @@ enum {
 };
 
 // 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
-// 名前が全角カタカナで構成され、20文字以内であるかを検証する関数
 int validate_name(const char *name) {
     wchar_t wc;
     const char *ptr = name;
@@ -286,25 +285,29 @@ void trim_input(char *str) {
     char *start = str;
     char *end;
 
-    // 先頭の空白をスキップ
-    while (isspace((unsigned char)*start)) start++;
+    // 先頭の空白・制御文字をスキップ
+    while (*start && (unsigned char)*start <= 0x20) {
+        start++;
+    }
 
-    // 全て空白の場合は空文字にする
-    if (*start == 0) {
-        *str = 0;
+    // 全て制御文字の場合は空文字にする
+    if (*start == '\0') {
+        *str = '\0';
         return;
     }
 
-    // 末尾の空白を削除
+    // 末尾の空白・制御文字を削除
     end = start + strlen(start) - 1;
-    while (end > start && isspace((unsigned char)*end)) end--;
+    while (end > start && (unsigned char)*end <= 0x20) {
+        end--;
+    }
 
     // 終端文字設定
     *(end + 1) = '\0';
 
-    // 先頭の空白を削除するために文字列を左詰めコピー
+    // 先頭の空白削除で先頭ポインタが変わった場合は文字列を左詰め
     if (start != str) {
-        memmove(str, start, strlen(start) + 1); // +1は終端文字分
+        memmove(str, start, strlen(start) + 1);
     }
 }
 
