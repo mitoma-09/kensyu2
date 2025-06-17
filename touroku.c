@@ -794,9 +794,6 @@ int register_existing_examinee(sqlite3 *db) {
     break; // 試験日が妥当で重複がない場合、ループ終了
 }
 
-    // 科目入力前に1回だけバッファクリア
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
 
     // 科目・点数入力ループ
     while (registered_subject_count < 5) {
