@@ -791,7 +791,11 @@ int disp_choice2(void){
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
         CLEAR_INPUT_BUFFER();
-        
+
+        if (!validate_date(day)){ // 正常な日付の場合は処理を続行
+            return 1;
+        }
+
         for (int i = 0; i < NUM_SUBJECT; i++){
             isFirstCall = 1; // ヘッダーのリセット
             display_deviation_scores(subjects[i], day, text);
