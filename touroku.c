@@ -916,14 +916,18 @@ registration_done:
 
 // 登録処理
 for (int i = 0; i < SUBJECT_COUNT; i++) {
-    if (registered[i]) {
-        if (insert_examinee(db, name, exam_day, i, scores[i]) != 0) {
-            fprintf(stderr, "Error inserting examinee data.\n");
-            return 1;
-        }
+    if (!registered[i]) {
+        scores[i] = -1; // 未登録科目のスコアを -1 に設定
     }
 }
 
+// 全データを1回のトランザクションで登録
+int id = register_data(db, name, exam_day, scores);
+if (id < 0) {
+    printf("登録に失敗しました。\n");
+    return 1;
+}
+printf("登録ID: %d\n", id);
 printf("新しい試験日の試験結果を登録しました。\n");
 return 0;
 }
