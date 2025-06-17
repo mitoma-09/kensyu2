@@ -675,7 +675,7 @@ int register_existing_examinee(sqlite3 *db) {
 
     // 名前入力＆バリデーション
     while (1) {
-    printf("名前を全角カタカナで入力してください（20文字以内）: ");
+    printf("登録している名前を全角カタカナで入力してください（20文字以内）: ");
 
     if (fgets(name, sizeof(name), stdin) == NULL) {
         printf("入力エラーが発生しました。再度入力してください。\n");
