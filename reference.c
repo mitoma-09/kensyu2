@@ -493,18 +493,18 @@ int reference(sqlite3 *database){
     }
 
     // テーブル作成
-#ifdef DEBUG
     sprintf(sql_statement, "CREATE TABLE IF NOT EXISTS %s( %s )", table_name, table);
-#endif
     // SQLステートメントを実行
     rc = sqlite3_exec(db, sql_statement, NULL, NULL, &error_message);
 
+#ifdef DEBUG
     if (rc == SQLITE_OK){
         fprintf(stdout, "Exec(Ceate Table):%s\n", sqlite3_errmsg(db));
     }else{
         fprintf(stdout, "ERROR(Ceate Table):%s\n", error_message);
         sqlite3_free(error_message);
     }
+#endif
     // SQLITE stmt 用の設定(仮)
     // char *sql_statement_select ="SELECT * FROM pointTools "
     // "WHERE name = ?2 AND day = ?3";
