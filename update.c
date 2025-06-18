@@ -103,6 +103,26 @@ void examdata(sqlite3 *db) {
     scanf("%d", &id);
     while (getchar() != '\n');
 
+     // --- 1. 既存データ取得 ---
+    sqlite3_stmt *stmt_select;
+    const char *sql_select =
+        "SELECT name, exam_day, nLang, math, Eng, JHist, wHist, geo, phys, chem, bio "
+        "FROM testtable WHERE ID = ?";
+
+    if (sqlite3_prepare_v2(db, sql_select, -1, &stmt_select, NULL) != SQLITE_OK) {
+        printf("SQLエラー: %s\n", sqlite3_errmsg(db));
+        return;
+    }
+
+    sqlite3_bind_int(stmt_select, 1, id);
+
+    int rc = sqlite3_step(stmt_select);
+    if (rc != SQLITE_ROW) {
+        printf("該当するIDの受験者情報が見つかりません。\n");
+        sqlite3_finalize(stmt_select);
+        return;
+    }
+
     // 氏名入力（最初に）
    while (1) {
     printf("新しい氏名（カタカナ20文字以内）: ");
