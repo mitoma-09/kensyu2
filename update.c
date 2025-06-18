@@ -11,7 +11,7 @@
 #define MAX_NAME_LEN 20
 
 // 名前の検証関数（UTF-8全角カタカナチェック）
-int validate_name(const char *name) {
+int validate_name_update(const char *name) {
     wchar_t wc;
     const char *ptr = name;
     size_t mblen;
@@ -109,7 +109,7 @@ void examdata(sqlite3 *db) {
     fgets(name, sizeof(name), stdin);
     name[strcspn(name, "\n")] = '\0';
 
-    int result = validate_name(name);
+    int result = validate_name_update(name);
     if (result == NAME_ERR_EMPTY) {
         printf("エラー: 氏名が空です。1文字以上入力してください。\n");
     } else if (result == NAME_ERR_INVALID_CHAR) {

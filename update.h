@@ -10,4 +10,7 @@
 // 受験者情報を更新する関数（氏名、試験日、点数など）
 void examdata(sqlite3 *db);
 
+int validate_name_update(const char *name);
+
+
 #endif
