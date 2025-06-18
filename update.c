@@ -123,6 +123,33 @@ void examdata(sqlite3 *db) {
         return;
     }
 
+    // 既存データ読み込み
+    const unsigned char *db_name = sqlite3_column_text(stmt_select, 0);
+    int db_exam_day = sqlite3_column_int(stmt_select, 1);
+
+    strncpy(name, (const char *)db_name, sizeof(name));
+    name[sizeof(name)-1] = '\0';
+
+    snprintf(exam_day, sizeof(exam_day), "%08d", db_exam_day);
+
+    for (int i = 0; i < 9; i++) {
+        scores[i] = sqlite3_column_int(stmt_select, 2 + i);
+    }
+
+    sqlite3_finalize(stmt_select);
+
+    // 既存情報表示
+    printf("現在の情報:\n");
+    printf("氏名: %s\n", name);
+    printf("試験日: %s\n", exam_day);
+    for (int i = 0; i < 9; i++) {
+        printf("%s: %d\n", subjects[i], scores[i]);
+    }
+
+    // --- 2. 変更入力 ---
+
+    printf("各項目を変更します。変更しない場合はEnterのみ押してください。\n");
+    
     // 氏名入力（最初に）
    while (1) {
     printf("新しい氏名（カタカナ20文字以内）: ");
