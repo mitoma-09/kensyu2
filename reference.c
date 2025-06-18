@@ -44,8 +44,7 @@ void display_deviation_scores( const char *subject, int day, char *text);
 void display_total_deviation_scores(char *text);
 
 
-    double
-    calc_subject_std(const char *subject, int day, char *text);
+double calc_subject_std(const char *subject, int day, char *text);
 
 /// @brief データの構造体
 typedef struct data{
@@ -203,7 +202,7 @@ int callback(void *NotUsed, int argc, char **argv, char **colName){
     setlocale(LC_ALL, "");
 
     // 各カラムの希望する表示幅
-    int field_widths[3] = {6, 15, 6}; // IDは6桁、nameは15桁、exam_dayは6桁
+    int field_widths[3] = {6, 35, 6}; // IDは6桁、nameは15桁、exam_dayは6桁
 
     if (isFirstCall){
         // ヘッダーを出力
@@ -283,7 +282,7 @@ int callback2(void *NotUsed, int argc, char **argv, char **colName){
 
         setlocale(LC_ALL, "");
 
-    int field_widths[4] = {25, 10, 10, 8}; // name25桁、day10桁、その他6桁
+    int field_widths[4] = {35, 10, 10, 8}; // name25桁、day10桁、その他6桁
 
     if (isFirstCall){
         for (int i = 0; i < argc; i++){
@@ -339,7 +338,7 @@ int deviation_callback(void *data, int argc, char **argv, char **colNames){
     DeviationContext *ctx = (DeviationContext *)data;
     setlocale(LC_ALL, "");
     extern int isFirstCall; // 初回かどうかを判定するフラグ
-    int field_widths[4] = {25, 10, 6, 10}; // name25桁、day10桁、その他6桁
+    int field_widths[4] = {35, 10, 6, 10}; // name25桁、day10桁、その他6桁
 
     // 期待されるカラム: name, day, 得点
     if (isFirstCall){
@@ -373,7 +372,7 @@ int deviation_callback(void *data, int argc, char **argv, char **colNames){
            argv[2] ? argv[2] : "-",
            deviation);*/
 
-    print_field(argv[0] ? argv[0] : "-", 25);
+    print_field(argv[0] ? argv[0] : "-", 35);
     putchar(' ');
     print_field(argv[1] ? argv[1] : "-", 10);
     putchar(' ');
@@ -444,7 +443,7 @@ void reset_db_connection(sqlite3 **db){
 ////////////////////////////
 #define MAX_SQL_SIZE 1000
 
- #define DEBUG
+// #define DEBUG
 
 int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
@@ -590,7 +589,7 @@ int disp_choice1(void){
         wait_for_enter();
         disp_ID(text);
 
-        printf("SQLite version: %s\n", sqlite3_libversion());
+        //printf("SQLite version: %s\n", sqlite3_libversion());
 
 
         break;
