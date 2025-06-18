@@ -582,7 +582,8 @@ int disp_choice1(void){
     switch (b){
     case 1:
         printf("IDに対応する試験者と試験実施日を表示します\n");
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
         disp_ID(text);
 
         break;
@@ -591,8 +592,8 @@ int disp_choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        //CLEAR_INPUT_BUFFER();
-        wait_for_enter();
+        CLEAR_INPUT_BUFFER();
+        //wait_for_enter();
 
         if (!validate_date(day)){ // 正常な日付の場合は処理を続行
             return 1;
@@ -1345,7 +1346,7 @@ void display_deviation_scores(char *subject, int day, char *text){
              " %s.%s AS score,"
              " CASE "
              "  WHEN stats.std_dev = 0 THEN 50"
-             "  ELSE 50 + 10 * (%s.%s - stats.avg_val) / stas.std_dev"
+             "  ELSE 50 + 10 * (%s.%s - stats.avg_val) / stats.std_dev"
              " END AS deviation "
              "FROM %s "
              "CROSS JOIN stats "
