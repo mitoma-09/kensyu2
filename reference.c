@@ -89,6 +89,14 @@ typedef struct{
 //構造体の初回呼び出しリセット
 #define RESET_FIRST_CALL(ctx) ((ctx)->isFirstCall = 1)
 
+/// @brief バッファ消去
+/// @param  
+void clear_input_buffer(void){
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF){
+    }
+}
+
 /// @brief 改行
 /// @param  
 void wait_for_enter(void){
@@ -96,16 +104,8 @@ void wait_for_enter(void){
     //printf("次に進むにはEnterを押してください...");
     if (fgets(buf, sizeof(buf), stdin) == NULL){
         // fgetsが失敗した場合は、対策として何度か読もうとする
-        clearerr(stdin);
+        clear_input_buffer();
         fgets(buf, sizeof(buf), stdin);
-    }
-}
-
-/// @brief バッファ消去
-/// @param  
-void clear_input_buffer(void){
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF){
     }
 }
 
@@ -540,6 +540,7 @@ int reference(sqlite3 *database){
     // sqlite3_prepare_v2(db, sql_statement_disp, -1, &stmt_disp, NULL);
 
     printf(" \n");
+    reset_db_connection(&db);
 
     // 機能選択
     c = disp_choice1();
@@ -588,6 +589,9 @@ int disp_choice1(void){
         wait_for_enter();
         disp_ID(text);
 
+        printf("SQLite version: %s\n", sqlite3_libversion());
+
+
         break;
     case 2:
         printf("試験実施日毎の各科目トップ5を表示します\n");
@@ -601,18 +605,16 @@ int disp_choice1(void){
             return 1;
         }
         printf("\n");
-
         printf("選択した試験日 %d のデータを取得します...\n", day);
 
         for (int i = 0; i < NUM_SUBJECT; i++){       // subjectの回数ループ
             isFirstCall = 1;                         // ヘッダーの表示リセット
             top_sort_day(day, 5, subjects[i], text); // 別のクラスで処理
-
             printf("\n");
-                printf("%sは以上です。\n", subjects[i]);
+            printf("%sは以上です。\n", subjects[i]);
 
-                clear_input_buffer();// エンターキー待機
-                //wait_for_enter();
+            //clear_input_buffer();// エンターキー待機
+            wait_for_enter();
         }
 
         break;
@@ -622,12 +624,12 @@ int disp_choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-
-        printf("\n");
+        clear_input_buffer();
 
         if (!validate_date(day)){
             return 1;
         }
+        printf("\n");
 
         isFirstCall = 1;
         top_sort_day_sum(day, 5, text); // 別のクラスで処理
@@ -962,12 +964,18 @@ int top_sort_day(int day, int person, char *subject, char *text){
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
                  "SELECT * FROM ( "
-                 "SELECT name, exam_day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
+                 "SELECT name, exam_day, %s, RANK() OVER (ORDER BY %s DESC, ID ASC) AS ranking "
                  "FROM %s WHERE %s IS NOT NULL AND exam_day = %d "
                  ") AS ranked_data "
                  "WHERE ranking <= %d "
                  "ORDER BY ranking ASC;",
                  subject, subject, table_name, subject, day, person);
+        // snprintf(text, MAX_SQL_SIZE,
+        //         " SELECT name, exam_day, %s FROM"
+        //         " %s WHERE %s IS NOT NULL AND exam_day = %d"
+        //         " ORDER BY %s DESC LIMIT %d;"
+        //          ,
+        //          subject,  table_name, subject, day, subject,person);
     }else{
         printf("エラー: person の値が不正です。\n");
     }
