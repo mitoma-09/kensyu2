@@ -431,9 +431,15 @@ int isFirstCall; // Callbackで初回かどうかを判定するフラグ
                      COALESCE(JHist, 0)+ COALESCE(wHist, 0) + COALESCE(geo, 0) + \
                      COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
 
-#define CLEAR_INPUT_BUFFER() while (getchar() != '\n') //エンターキー待機
+//#define CLEAR_INPUT_BUFFER() while (getchar() != '\n') //エンターキー待機
+#define CLEAR_INPUT_BUFFER() \
+do{ \
+    int c; \
+    while ((c = getchar()) != '\n' && c != EOF){/*エンターキーまで何もしない */ \
+    } \
+}while (0)
 
-sqlite3_stmt *stmt_select; // 検索 用　
+    sqlite3_stmt *stmt_select; // 検索 用　
 sqlite3_stmt *stmt_insert; // 挿入 用
 sqlite3_stmt *stmt_update; // 更新 用
 sqlite3_stmt *stmt_disp;   // 表示 用　
