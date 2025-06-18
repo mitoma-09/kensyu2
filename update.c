@@ -4,21 +4,36 @@
 #include <sqlite3.h>
 #include <ctype.h>
 #include <time.h>
+#include <wchar.h> 
+#include <errno.h> 
 #include "update.h"
 
 #define MAX_NAME_LEN 20
 
-// カタカナチェック
-int is_katakana(const char *str) {
-    while (*str) {
-        if ((unsigned char)str[0] == 0xE3 &&
-            ((unsigned char)str[1] == 0x82 || (unsigned char)str[1] == 0x83)) {
-            str += 3; // 3バイト文字なので次へ
-        } else {
-            return 0;
-        }
+// 名前の検証関数（UTF-8全角カタカナチェック）
+int validate_name(const char *name) {
+    wchar_t wc;
+    const char *ptr = name;
+    size_t mblen;
+    int char_count = 0;
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+
+    if (*name == '\0') return NAME_ERR_EMPTY;
+
+    while (*ptr) {
+        errno = 0; // errnoクリア
+        mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
+        if (mblen == (size_t)-1 || mblen == (size_t)-2) return NAME_ERR_INVALID_CHAR;
+
+        if (!((wc >= 0x30A1 && wc <= 0x30FA) || wc == 0x30FC)) return NAME_ERR_INVALID_CHAR;
+
+        char_count++;
+        if (char_count > MAX_NAME_LEN) return NAME_ERR_LENGTH;
+
+        ptr += mblen;
     }
-    return 1;
+    return NAME_VALID;
 }
 
 // 日付チェック（YYYYMMDDが正当な日付か）
@@ -89,22 +104,24 @@ void examdata(sqlite3 *db) {
     while (getchar() != '\n');
 
     // 氏名入力（最初に）
-    while (1) {
+   while (1) {
     printf("新しい氏名（カタカナ20文字以内）: ");
     fgets(name, sizeof(name), stdin);
     name[strcspn(name, "\n")] = '\0';
 
-    // 🔽 ここがデバッグ出力です 🔽
-    printf("DEBUG: 入力された氏名 = [%s]\n", name);
-    printf("DEBUG: is_katakana(name) = %d\n", is_katakana(name));
-    printf("DEBUG: strlen(name) = %zu\n", strlen(name));
-
-    if (strlen(name) > MAX_NAME_LEN ) {
-        printf("カタカナ20文字以内で再入力してください。\n");
+    int result = validate_name(name);
+    if (result == NAME_ERR_EMPTY) {
+        printf("エラー: 氏名が空です。1文字以上入力してください。\n");
+    } else if (result == NAME_ERR_INVALID_CHAR) {
+        printf("エラー: 氏名にカタカナ以外の文字が含まれています。\n");
+        printf("※使える文字：全角カタカナ（ァ～ヶ、ー のみ）\n");
+    } else if (result == NAME_ERR_LENGTH) {
+        printf("エラー: 氏名はカタカナ20文字以内で入力してください。\n");
     } else {
-        break;
+        break; // 正常
     }
 }
+
 
     // 試験日入力
     while (1) {

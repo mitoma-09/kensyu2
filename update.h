@@ -1,5 +1,9 @@
 #ifndef UPDATE_H
 #define UPDATE_H
+#define NAME_VALID 0
+#define NAME_ERR_EMPTY 1
+#define NAME_ERR_INVALID_CHAR 2
+#define NAME_ERR_LENGTH 3
 
 #include <sqlite3.h>
 
