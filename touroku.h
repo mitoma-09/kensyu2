@@ -5,5 +5,9 @@
 
 int touroku_main(sqlite3 *db);
 void reset_db_connection(sqlite3 **db);
+int validate_name(const char *name);
+void trim_input(char *str);
+int touroku_validate_date(const char *date_str);
+int is_date_in_valid_range(const char *date_str);
 
 #endif // TOUROKU_H
