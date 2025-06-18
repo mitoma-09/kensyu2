@@ -54,6 +54,28 @@ int input_score(const char *subject) {
 
 // メイン更新関数
 void examdata(sqlite3 *db) {
+    int subchoice;
+    printf("【受験者情報変更】\n");
+    printf("1. 変更を行う\n");
+    printf("2. メインメニューに戻る\n");
+    printf("選択してください（1 または 2）: ");
+    if (scanf("%d", &subchoice) != 1) {
+        printf("無効な入力です。メインメニューに戻ります。\n");
+        while(getchar() != '\n');
+        return;
+    }
+
+    if (subchoice == 2) {
+        printf("メインメニューに戻ります。\n");
+        while(getchar() != '\n');
+        return;
+    } else if (subchoice != 1) {
+        printf("無効な選択肢です。メインメニューに戻ります。\n");
+        while(getchar() != '\n');
+        return;
+    }
+
+    while(getchar() != '\n'); // 改行除去
     int id;
     char name[100], exam_day[100];
     const char *subjects[] = {
@@ -61,6 +83,7 @@ void examdata(sqlite3 *db) {
     };
     int scores[9];
 
+    printf("既登録受験者情報の変更ができます。\n");
     printf("変更対象の受験者IDを入力してください: ");
     scanf("%d", &id);
     while (getchar() != '\n');
@@ -136,9 +159,9 @@ void examdata(sqlite3 *db) {
 
 }
 
-/*
-// ★この main 関数は、メイン機能 (main.c など) と結合したためおそらく不要。
-int main(void) {
+
+/*main.cと結合したため不要
+    int main(void) {
     sqlite3 *db;
     int rc = sqlite3_open("examdata.db", &db);  // 適宜データベース名変更
 
@@ -152,4 +175,6 @@ int main(void) {
     sqlite3_close(db);
     return 0;
 } 
+
 */
+
