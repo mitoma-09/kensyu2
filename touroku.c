@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include "database.h" 
+#include <time.h>
 
 #define SUBJECT_COUNT 9
 #define LIBERAL_START_INDEX 3
@@ -285,6 +286,59 @@ int is_exam_date_exists(sqlite3 *db, const char *name, const char *exam_date_str
     return exists;
 }
 
+// 試験日が「過去3年〜未来1年」の範囲内かチェック
+int is_date_in_valid_range(const char *date) {
+    if (strlen(date) != 8 || strspn(date, "0123456789") != 8) {
+        printf("エラー: 試験日は8桁の数字で入力してください（例: 20250513）。\n");
+        return 0;
+    }
+
+    // 年月日を抽出
+    char year_str[5], month_str[3], day_str[3];
+    strncpy(year_str, date, 4); year_str[4] = '\0';
+    strncpy(month_str, date + 4, 2); month_str[2] = '\0';
+    strncpy(day_str, date + 6, 2); day_str[2] = '\0';
+
+    int year = atoi(year_str);
+    int month = atoi(month_str);
+    int day = atoi(day_str);
+
+    // 現在日付を取得
+    time_t t = time(NULL);
+    struct tm *now = localtime(&t);
+    int current_year = now->tm_year + 1900;
+    int current_month = now->tm_mon + 1;
+    int current_day = now->tm_mday;
+
+    // 年だけ範囲チェック
+    if (year < current_year - 3 || year > current_year + 1) {
+        printf("エラー: 試験日は過去3年から未来1年の範囲内で指定してください。\n");
+        return 0;
+    }
+
+    // 年が境界のときは月日もチェック（厳密にするなら）
+    if (year == current_year - 3) {
+        if (month < current_month) {
+            printf("エラー: 試験日は過去3年以内で指定してください。\n");
+            return 0;
+        } else if (month == current_month && day < current_day) {
+            printf("エラー: 試験日は過去3年以内で指定してください。\n");
+            return 0;
+        }
+    }
+    if (year == current_year + 1) {
+        if (month > current_month) {
+            printf("エラー: 試験日は未来1年以内で指定してください。\n");
+            return 0;
+        } else if (month == current_month && day > current_day) {
+            printf("エラー: 試験日は未来1年以内で指定してください。\n");
+            return 0;
+        }
+    }
+
+    return 1;  // 範囲内
+}
+
 // 入力をトリムする関数
 void trim_input(char *str) {
     char *start = str;
@@ -470,6 +524,11 @@ do {
     // 日付の妥当性を確認
     if (!touroku_validate_date(exam_date_str)) {
         continue;  // 日付の妥当性チェックでNGなら再入力
+    }
+
+    //日付の範囲を確認
+    if (!is_date_in_valid_range(exam_date_str)) {
+    continue;
     }
 
     exam_day = atoi(exam_date_str);
@@ -784,6 +843,11 @@ int register_existing_examinee(sqlite3 *db) {
     if (!touroku_validate_date(exam_date_str)) {
         printf("日付の形式が正しくありません。\n");
         continue;
+    }
+
+    //日付の範囲を確認
+    if (!is_date_in_valid_range(exam_date_str)) {
+    continue;
     }
 
     exam_day = atoi(exam_date_str);
