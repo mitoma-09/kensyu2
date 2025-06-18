@@ -643,7 +643,7 @@ if (id < 0) {
     printf("登録に失敗しました。\n");
     return 1;
 }
-printf("登録ID: %d\n", id);
+printf("登録した試験日のあなたの登録ID: %d\n", id);
 return 0;
 }
 
@@ -943,7 +943,8 @@ if (id < 0) {
     printf("登録に失敗しました。\n");
     return 1;
 }
-printf("登録ID: %d\n", id);
+printf("登録した試験日のあなたの登録ID: %d\n", id);
+printf("※登録した試験日ごとにIDが与えられます※\n");
 printf("新しい試験日の試験結果を登録しました。\n");
 return 0;
 }
