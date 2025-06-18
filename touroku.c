@@ -384,6 +384,7 @@ int register_new_examinee(sqlite3 *db) {
     if (max_id >= 1000) {
         // 最大IDが1000以上の場合は登録不可とする
         printf("登録可能なIDの上限(1000件)に達しました。これ以上登録できません。\n");
+        printf("削除機能または変更機能を利用してください。\n");
         return 1;
     }
 
@@ -690,6 +691,7 @@ int register_existing_examinee(sqlite3 *db) {
     if (max_id >= 1000) {
         // 最大IDが1000以上の場合は登録不可とする
         printf("登録可能なIDの上限(1000件)に達しました。これ以上登録できません。\n");
+        printf("削除機能または変更機能を利用してください。\n");
         return 1;
     }
 
