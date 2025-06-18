@@ -680,6 +680,20 @@ int register_existing_examinee(sqlite3 *db) {
     char input[32];
     char *endptr;
 
+    // 最大IDを取得して登録上限をチェックする
+    int max_id = get_max_id(db);
+    if (max_id < 0) {
+        // データベースエラーがあった場合の処理
+        printf("データベースエラーにより登録できません。\n");
+        return 1;
+    }
+    if (max_id >= 1000) {
+        // 最大IDが1000以上の場合は登録不可とする
+        printf("登録可能なIDの上限(1000件)に達しました。これ以上登録できません。\n");
+        return 1;
+    }
+
+
     // 名前入力＆バリデーション
     while (1) {
     printf("登録している名前を全角カタカナで入力してください（20文字以内）: ");
