@@ -101,6 +101,14 @@ void wait_for_enter(void){
     }
 }
 
+/// @brief バッファ消去
+/// @param  
+void clear_input_buffer(void){
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF){
+    }
+}
+
 /// @brief 指定されたフィールド幅（表示桁数）に合わせて文字列を出力する関数
 /// @param str 
 /// @param field_width 
@@ -444,12 +452,6 @@ int isFirstCall; // Callbackで初回かどうかを判定するフラグ
                      COALESCE(phys, 0) + COALESCE(chem, 0) + COALESCE(bio, 0)"
 
 //#define CLEAR_INPUT_BUFFER() while (getchar() != '\n') //エンターキー待機
-#define CLEAR_INPUT_BUFFER() \
-do{ \
-    int c; \
-    while ((c = getchar()) != '\n' && c != EOF){/*エンターキーまで何もしない */ \
-    } \
-}while (0)
 
     sqlite3_stmt *stmt_select; // 検索 用　
 sqlite3_stmt *stmt_insert; // 挿入 用
@@ -549,7 +551,7 @@ int reference(sqlite3 *database){
 
     if (c == 0){
         printf("参照機能を終了します\n");
-        CLEAR_INPUT_BUFFER();
+        wait_for_enter();
     }else{
         // printf("もう一度やり直してください\n");
     }
@@ -582,7 +584,7 @@ int disp_choice1(void){
     switch (b){
     case 1:
         printf("IDに対応する試験者と試験実施日を表示します\n");
-        //CLEAR_INPUT_BUFFER();
+        //clear_input_buffer();
         wait_for_enter();
         disp_ID(text);
 
@@ -592,7 +594,7 @@ int disp_choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        CLEAR_INPUT_BUFFER();
+        clear_input_buffer();
         //wait_for_enter();
 
         if (!validate_date(day)){ // 正常な日付の場合は処理を続行
@@ -609,8 +611,8 @@ int disp_choice1(void){
             printf("\n");
                 printf("%sは以上です。\n", subjects[i]);
 
-                //CLEAR_INPUT_BUFFER();// エンターキー待機
-                wait_for_enter();
+                clear_input_buffer();// エンターキー待機
+                //wait_for_enter();
         }
 
         break;
