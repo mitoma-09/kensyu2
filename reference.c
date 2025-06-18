@@ -643,7 +643,7 @@ int disp_choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
 
         printf("\n");
 
@@ -654,12 +654,7 @@ int disp_choice1(void){
         for (int i = 0; i < NUM_SUBJECT; i++){     // subjectの回数ループ
             isFirstCall = 1;                       // ヘッダーのリセット
             under_average(day, subjects[i], text); // 別のクラスで処理
-
-            if (i != NUM_SUBJECT - 1){
-                // printf("%sは以上です。\n",subjects[i]);
-
-                CLEAR_INPUT_BUFFER(); // エンターキー待機
-            }
+            CLEAR_INPUT_BUFFER(); // エンターキー待機
             // printf("\n");
         }
 
@@ -1509,7 +1504,7 @@ void display_total_deviation_scores(char *text){
 ///////////////////////////
 int validate_date(int date){
     if (date >= 100000000 || date < 10000000){
-        printf("エラー: 日付は8桁の数字で入力してください（例: 20250513）。\n");
+        printf("エラー: 日付は8桁の数字で入力してください（例: 20250513）\n");
         // printf("%d\n",date);
         return 0;
     }
