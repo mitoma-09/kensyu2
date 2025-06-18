@@ -54,6 +54,28 @@ int input_score(const char *subject) {
 
 // メイン更新関数
 void examdata(sqlite3 *db) {
+    int choice;
+    printf("【受験者情報変更メニュー】\n");
+    printf("1. 既登録受験者情報の変更\n");
+    printf("2. メインメニューに戻る\n");
+    printf("選択してください（1 または 2）: ");
+    if (scanf("%d", &choice) != 1) {
+        printf("無効な入力です。メインメニューに戻ります。\n");
+        while(getchar() != '\n');
+        return; // main.cに戻る
+    }
+
+    if (choice == 2) {
+        printf("メインメニューに戻ります。\n");
+        while(getchar() != '\n');
+        return; // main.cに戻る
+    } else if (choice != 1) {
+        printf("無効な選択肢です。メインメニューに戻ります。\n");
+        while(getchar() != '\n');
+        return;
+    }
+
+    while(getchar() != '\n'); // 改行除去
     int id;
     char name[100], exam_day[100];
     const char *subjects[] = {
