@@ -8,7 +8,7 @@
 #include "touroku.h"
 #include <wchar.h>
 #include <locale.h>
-
+#include <unistd.h>
 
 /////////////////////////////////
 // 関数宣言
@@ -88,6 +88,18 @@ typedef struct{
 
 //構造体の初回呼び出しリセット
 #define RESET_FIRST_CALL(ctx) ((ctx)->isFirstCall = 1)
+
+/// @brief 改行
+/// @param  
+void wait_for_enter(void){
+    char buf[16];
+    //printf("次に進むにはEnterを押してください...");
+    if (fgets(buf, sizeof(buf), stdin) == NULL){
+        // fgetsが失敗した場合は、対策として何度か読もうとする
+        clearerr(stdin);
+        fgets(buf, sizeof(buf), stdin);
+    }
+}
 
 /// @brief 指定されたフィールド幅（表示桁数）に合わせて文字列を出力する関数
 /// @param str 
@@ -579,7 +591,8 @@ int disp_choice1(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
 
         if (!validate_date(day)){ // 正常な日付の場合は処理を続行
             return 1;
@@ -595,7 +608,8 @@ int disp_choice1(void){
             printf("\n");
                 printf("%sは以上です。\n", subjects[i]);
 
-                CLEAR_INPUT_BUFFER();// エンターキー待機
+                //CLEAR_INPUT_BUFFER();// エンターキー待機
+                wait_for_enter();
         }
 
         break;
@@ -644,6 +658,7 @@ int disp_choice1(void){
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
         //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
 
         printf("\n");
 
@@ -654,7 +669,8 @@ int disp_choice1(void){
         for (int i = 0; i < NUM_SUBJECT; i++){     // subjectの回数ループ
             isFirstCall = 1;                       // ヘッダーのリセット
             under_average(day, subjects[i], text); // 別のクラスで処理
-            CLEAR_INPUT_BUFFER(); // エンターキー待機
+            //CLEAR_INPUT_BUFFER(); // エンターキー待機
+            wait_for_enter();
             // printf("\n");
         }
 
@@ -677,12 +693,14 @@ int disp_choice1(void){
         break;
     case 7:
         printf("全試験における各科目合計トップ10を表示します\n");
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
         for (int i = 0; i < NUM_SUBJECT; i++){  // subjectの回数ループ
             isFirstCall = 1;                    // ヘッダーの表示リセット
             top_sort(10, subjects[i], text);    // 別のクラスで処理
 
-            CLEAR_INPUT_BUFFER();
+            //CLEAR_INPUT_BUFFER();
+            wait_for_enter();
         }
 
         break;
@@ -697,13 +715,15 @@ int disp_choice1(void){
         break;
     case 9:
         printf("全試験における各科目平均点数を表示します\n");
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
         for (int i = 0; i < NUM_SUBJECT; i++){ // subjectの回数ループ
             isFirstCall = 1;                   // ヘッダーの表示リセット
             average = calc_subject_average(subjects[i],0,text);
             printf("%sの平均点は%.1fです\n",subjects[i],average);
 
-            CLEAR_INPUT_BUFFER();
+            //CLEAR_INPUT_BUFFER();
+            wait_for_enter();
         }
 
         break;
@@ -757,12 +777,14 @@ int disp_choice2(void){
         break;
     case 2:
         printf("全試験における各科目平均点数以下の受験者一覧を表示します\n");
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
         for (int i = 0; i < NUM_SUBJECT; i++){    // subjectの回数ループ
             isFirstCall = 1;                      // ヘッダーのリセット
             under_average_all(subjects[i], text); // 別のクラスで処理
 
-            CLEAR_INPUT_BUFFER();
+            //CLEAR_INPUT_BUFFER();
+            wait_for_enter();
         }
         break;
     case 3:
@@ -782,7 +804,8 @@ int disp_choice2(void){
         for (int i = 0; i < NUM_SUBJECT; i++){
             isFirstCall = 1; // ヘッダーのリセット
             display_deviation_scores(subjects[i], 0, text);
-            CLEAR_INPUT_BUFFER();
+            //CLEAR_INPUT_BUFFER();
+            wait_for_enter();
         }
             break;
 
@@ -791,7 +814,8 @@ int disp_choice2(void){
 
         printf("試験実施日を半角数字8桁(例:20200202)で選択してください:");
         scanf("%d", &day);
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
 
         if (!validate_date(day)){ // 正常な日付の場合は処理を続行
             return 1;
@@ -800,7 +824,8 @@ int disp_choice2(void){
         for (int i = 0; i < NUM_SUBJECT; i++){
             isFirstCall = 1; // ヘッダーのリセット
             display_deviation_scores(subjects[i], day, text);
-            CLEAR_INPUT_BUFFER();
+            //CLEAR_INPUT_BUFFER();
+            wait_for_enter();
         }
 
         break;
@@ -808,7 +833,8 @@ int disp_choice2(void){
         printf("隠し機能：全科目偏差値(全日程)\n");
 
         
-        CLEAR_INPUT_BUFFER();
+        //CLEAR_INPUT_BUFFER();
+        wait_for_enter();
         isFirstCall = 1; // ヘッダーのリセット
         display_total_deviation_scores(text);
 
