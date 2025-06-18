@@ -280,9 +280,10 @@ int callback(void *NotUsed, int argc, char **argv, char **colName){
 int callback2(void *NotUsed, int argc, char **argv, char **colName){
     extern int isFirstCall; // 初回かどうかを判定するフラグ
 
-    setlocale(LC_ALL, "");
 
-    int field_widths[3] = {25, 10, 6}; // name25桁、day10桁、その他6桁
+        setlocale(LC_ALL, "");
+
+    int field_widths[4] = {25, 10, 10, 8}; // name25桁、day10桁、その他6桁
 
     if (isFirstCall){
         for (int i = 0; i < argc; i++){
