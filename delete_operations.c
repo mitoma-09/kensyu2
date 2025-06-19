@@ -251,7 +251,6 @@ int delete_all_data(sqlite3 *db) {
 
 // 削除メニュー表示と選択処理
 void delete_menu(sqlite3 *db) {
-    int choice;
     while (1) {
         printf("\n=== 削除メニュー ===\n");
         printf("1. 受験者単位の削除\n");
@@ -260,12 +259,30 @@ void delete_menu(sqlite3 *db) {
         printf("4. キャンセル\n");
         printf("番号を入力してください > ");
 
-        if (scanf("%d", &choice) != 1) {
-            printf("無効な入力です。\n");
-            while (getchar() != '\n');
+        char input[10];
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("入力エラーです。\n");
             continue;
         }
-        while (getchar() != '\n'); // 改行を消費
+
+        // 改行削除
+        input[strcspn(input, "\n")] = '\0';
+
+        // 数字のみチェック
+        int valid = 1;
+        for (size_t i = 0; i < strlen(input); i++) {
+            if (!isdigit((unsigned char)input[i])) {
+                valid = 0;
+                break;
+            }
+        }
+
+        if (!valid || strlen(input) == 0) {
+            printf("数字のみを入力してください。\n");
+            continue;
+        }
+
+        int choice = atoi(input);
 
         if (choice == 1) {
             if (delete_examinee_all_with_validation(db) != 0) {
@@ -277,34 +294,32 @@ void delete_menu(sqlite3 *db) {
                 printf("試験単位の削除に失敗しました。\n");
             }
             break;
-        }else if (choice == 3) {
-        char confirm1[8];
-        char confirm2[8];
-        // 1回目の確認
-        printf("本当に全てのデータを削除しますか？ [y/N]: ");
-        if (fgets(confirm1, sizeof(confirm1), stdin) == NULL) {
-            printf("入力エラーが発生しました。\n");
-            continue;
-        }
-        if (tolower(confirm1[0]) != 'y') {
-            printf("全てのデータ削除をキャンセルしました。\n");
-            break;
-        }
-
-        // 2回目の確認
-        printf("確認: 本当に削除します。よろしいですか？ [y/N]: ");
-        if (fgets(confirm2, sizeof(confirm2), stdin) == NULL) {
-            printf("入力エラーが発生しました。\n");
-            continue;
-        }
-        if (tolower(confirm2[0]) == 'y') {
-            if (delete_all_data(db) != 0) {
-                printf("全てのデータ削除に失敗しました。\n");
+        } else if (choice == 3) {
+            char confirm1[8];
+            char confirm2[8];
+            printf("本当に全てのデータを削除しますか？ [y/N]: ");
+            if (fgets(confirm1, sizeof(confirm1), stdin) == NULL) {
+                printf("入力エラーが発生しました。\n");
+                continue;
             }
-        } else {
-            printf("全てのデータ削除をキャンセルしました。\n");
-        }
-        break;
+            if (tolower(confirm1[0]) != 'y') {
+                printf("全てのデータ削除をキャンセルしました。\n");
+                break;
+            }
+
+            printf("確認: 本当に削除します。よろしいですか？ [y/N]: ");
+            if (fgets(confirm2, sizeof(confirm2), stdin) == NULL) {
+                printf("入力エラーが発生しました。\n");
+                continue;
+            }
+            if (tolower(confirm2[0]) == 'y') {
+                if (delete_all_data(db) != 0) {
+                    printf("全てのデータ削除に失敗しました。\n");
+                }
+            } else {
+                printf("全てのデータ削除をキャンセルしました。\n");
+            }
+            break;
         } else if (choice == 4) {
             printf("削除操作をキャンセルしました。\n");
             break;
