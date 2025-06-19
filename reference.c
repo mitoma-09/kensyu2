@@ -808,9 +808,10 @@ int disp_choice2(void){
         
         for (int i = 0; i < NUM_SUBJECT; i++){
             isFirstCall = 1; // ヘッダーのリセット
+            wait_for_enter();
             display_deviation_scores(subjects[i], 0, text);
             //CLEAR_INPUT_BUFFER();
-            wait_for_enter();
+            
         }
             break;
 
