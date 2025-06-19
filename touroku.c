@@ -482,10 +482,29 @@ int register_new_examinee(sqlite3 *db) {
         // 名前がデータベースに存在するかを確認
         if (is_name_exists(db, name)) {
             printf("エラー: 同じ名前の受験者が既に登録されています。\n");
-            printf("違う試験日を追加登録したい場合「既登録者試験結果追加登録」を使用してください\n")
-            continue;  // 再入力を促す
+            printf("違う試験日を追加登録したい場合は「既登録者試験結果追加登録」を使用してください。\n");
+
+            // ユーザーに処理を続行するかどうか尋ねる
+            while (1) {
+                printf("この登録を中断しますか？ [y/N]: ");
+                char response[8];
+                if (fgets(response, sizeof(response), stdin) == NULL) {
+                    continue; // 入力エラー時は再度プロンプト
+                }
+                response[0] = tolower(response[0]);
+                if (response[0] == 'y') {
+                    printf("登録を中断しました。\n");
+                    return 1; // 処理を中断
+                } else if (response[0] == 'n' || response[0] == '\n') {
+                    break; // 再入力へ
+                } else {
+                    printf("無効な入力です。'y' または 'n' を入力してください。\n");
+                }
+            }
+
+            continue;  // 新しい名前を入力させる
         }
-        break;
+        break; // 名前が正しく、かつ重複していない場合
     } else if (ret == NAME_ERR_EMPTY) {
         printf("エラー: 名前を入力してください。\n");
     } else if (ret == NAME_ERR_LENGTH) {
