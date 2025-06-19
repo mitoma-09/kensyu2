@@ -228,24 +228,39 @@ int delete_examinee_examday_with_validation(sqlite3 *db) {
 
 // 全てのデータを削除
 int delete_all_data(sqlite3 *db) {
-    sqlite3_stmt *stmt;
-    const char *sql = "DELETE FROM testtable;";
+    char *err_msg = NULL;
 
-    // SQL 文の準備
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "SQL 文の準備に失敗しました: %s\n", sqlite3_errmsg(db));
+    // トランザクション開始
+    if (sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "トランザクション開始に失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
         return -1;
     }
 
-    // SQL 文を実行
-    if (sqlite3_step(stmt) != SQLITE_DONE) {
-        fprintf(stderr, "全てのデータ削除に失敗しました: %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt);
+    // 全データ削除
+    if (sqlite3_exec(db, "DELETE FROM testtable;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "全データ削除に失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
         return -1;
     }
 
-    printf("全てのデータを削除しました。\n");
-    sqlite3_finalize(stmt);
+    // AUTOINCREMENTのシーケンスリセット
+    if (sqlite3_exec(db, "DELETE FROM sqlite_sequence WHERE name='testtable';", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "IDリセットに失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
+        return -1;
+    }
+
+    // コミット
+    if (sqlite3_exec(db, "COMMIT;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "トランザクションコミットに失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        return -1;
+    }
+
+    printf("全てのデータを削除し、IDをリセットしました。\n");
     return 0;
 }
 
@@ -255,7 +270,7 @@ void delete_menu(sqlite3 *db) {
         printf("\n=== 削除メニュー ===\n");
         printf("1. 受験者単位の削除\n");
         printf("2. 試験単位の削除\n");
-        printf("3. 全てのデータを削除\n");
+        printf("3. 全てのデータを削除(IDもリセットされます）\n");
         printf("4. キャンセル\n");
         printf("番号を入力してください > ");
 
