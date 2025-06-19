@@ -226,22 +226,78 @@ int delete_examinee_examday_with_validation(sqlite3 *db) {
     return rc;
 }
 
+// 全てのデータを削除
+int delete_all_data(sqlite3 *db) {
+    char *err_msg = NULL;
+
+    // トランザクション開始
+    if (sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "トランザクション開始に失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        return -1;
+    }
+
+    // 全データ削除
+    if (sqlite3_exec(db, "DELETE FROM testtable;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "全データ削除に失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
+        return -1;
+    }
+
+    // AUTOINCREMENTのシーケンスリセット
+    if (sqlite3_exec(db, "DELETE FROM sqlite_sequence WHERE name='testtable';", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "IDリセットに失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
+        return -1;
+    }
+
+    // コミット
+    if (sqlite3_exec(db, "COMMIT;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "トランザクションコミットに失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        return -1;
+    }
+
+    printf("全てのデータを削除し、IDをリセットしました。\n");
+    return 0;
+}
+
 // 削除メニュー表示と選択処理
 void delete_menu(sqlite3 *db) {
-    int choice;
     while (1) {
         printf("\n=== 削除メニュー ===\n");
         printf("1. 受験者単位の削除\n");
         printf("2. 試験単位の削除\n");
-        printf("3. キャンセル\n");
+        printf("3. 全てのデータを削除(IDもリセットされます）\n");
+        printf("4. キャンセル\n");
         printf("番号を入力してください > ");
 
-        if (scanf("%d", &choice) != 1) {
-            printf("無効な入力です。\n");
-            while (getchar() != '\n');
+        char input[10];
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("入力エラーです。\n");
             continue;
         }
-        while (getchar() != '\n');
+
+        // 改行削除
+        input[strcspn(input, "\n")] = '\0';
+
+        // 数字のみチェック
+        int valid = 1;
+        for (size_t i = 0; i < strlen(input); i++) {
+            if (!isdigit((unsigned char)input[i])) {
+                valid = 0;
+                break;
+            }
+        }
+
+        if (!valid || strlen(input) == 0) {
+            printf("数字のみを入力してください。\n");
+            continue;
+        }
+
+        int choice = atoi(input);
 
         if (choice == 1) {
             if (delete_examinee_all_with_validation(db) != 0) {
@@ -254,10 +310,36 @@ void delete_menu(sqlite3 *db) {
             }
             break;
         } else if (choice == 3) {
+            char confirm1[8];
+            char confirm2[8];
+            printf("本当に全てのデータを削除しますか？ [y/N]: ");
+            if (fgets(confirm1, sizeof(confirm1), stdin) == NULL) {
+                printf("入力エラーが発生しました。\n");
+                continue;
+            }
+            if (tolower(confirm1[0]) != 'y') {
+                printf("全てのデータ削除をキャンセルしました。\n");
+                break;
+            }
+
+            printf("確認: 本当に削除します。よろしいですか？ [y/N]: ");
+            if (fgets(confirm2, sizeof(confirm2), stdin) == NULL) {
+                printf("入力エラーが発生しました。\n");
+                continue;
+            }
+            if (tolower(confirm2[0]) == 'y') {
+                if (delete_all_data(db) != 0) {
+                    printf("全てのデータ削除に失敗しました。\n");
+                }
+            } else {
+                printf("全てのデータ削除をキャンセルしました。\n");
+            }
+            break;
+        } else if (choice == 4) {
             printf("削除操作をキャンセルしました。\n");
             break;
         } else {
-            printf("1～3の数字を入力してください。\n");
+            printf("1～4の数字を入力してください。\n");
         }
     }
 }
