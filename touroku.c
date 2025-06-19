@@ -465,14 +465,12 @@ int register_new_examinee(sqlite3 *db) {
     if (len > 0 && name[len - 1] == '\n') {
         name[len - 1] = '\0';  // 改行削除
     } else {
-        // 改行がなければ入力が長すぎてバッファに入りきってないので
-        // 残りの入力を読み捨てる
         int c;
         int too_long = 0;
         while ((c = getchar()) != '\n' && c != EOF) too_long = 1;
         if (too_long) {
             printf("エラー: 入力が長すぎます。20文字以内（全角カタカナ）で入力してください。\n");
-            continue;  // 再入力へ
+            continue;
         }
     }
 
@@ -481,6 +479,12 @@ int register_new_examinee(sqlite3 *db) {
     int ret = validate_name(name);
 
     if (ret == NAME_VALID) {
+        // 名前がデータベースに存在するかを確認
+        if (is_name_exists(db, name)) {
+            printf("エラー: 同じ名前の受験者が既に登録されています。\n");
+            printf("違う試験日を追加登録したい場合「既登録者試験結果追加登録」を使用してください\n")
+            continue;  // 再入力を促す
+        }
         break;
     } else if (ret == NAME_ERR_EMPTY) {
         printf("エラー: 名前を入力してください。\n");
