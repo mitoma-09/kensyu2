@@ -81,8 +81,7 @@ int main(int argc, char **argv) {
                 break;
             case 3: // 3.削除
                 printf("受験者情報の削除ができます。（仮実装）\n");
-                delete_examinee_data(db);  
-                delete_exam_data(db);            
+                delete_menu(db);           
                 break;
             case 4: // 4.参照
                 printf("結果による様々な情報を参照できます。\n");
