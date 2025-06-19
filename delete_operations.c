@@ -75,6 +75,33 @@ int delete_examinee_examday(sqlite3 *db, const char *name, int exam_day) {
     sqlite3_finalize(stmt);
     return 0;
 }
+//指定された名前と日付がデータベースに存在するかを確認
+int is_name_and_date_exists(sqlite3 *db, const char *name, int exam_day) {
+    sqlite3_stmt *stmt;
+
+    // 名前と試験日の存在確認を行うSQL文
+    const char *sql = "SELECT COUNT(*) FROM testtable WHERE name = ? AND exam_day = ?;";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "ステートメントの準備に失敗: %s\n", sqlite3_errmsg(db));
+        return 0; // エラー時は存在しないとみなす
+    }
+
+    // 名前と試験日をバインド
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 2, exam_day) != SQLITE_OK) {
+        fprintf(stderr, "バインドに失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+
+    // 結果を取得
+    int count = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        count = sqlite3_column_int(stmt, 0); // 件数を取得
+    }
+    sqlite3_finalize(stmt);
+    return count > 0; // 件数が0より大きければ存在
+}
 
 
 // 受験者単位削除＋入力チェック
@@ -94,23 +121,27 @@ int delete_examinee_all_with_validation(sqlite3 *db) {
             printf("エラー: 入力が長すぎます。20文字以内で入力してください。\n");
             continue;
         }
-        trim_input(name);
+        trim_input(name); // 入力文字列のトリム
 
         int ret = validate_name(name);
-        if (ret == 0) { // NAME_VALID と想定
-            break;
-        } else if (ret == 1) { // NAME_ERR_EMPTY
+        if (ret == 0) { // 名前形式が正しい場合
+            if (!is_name_exists(db, name)) { // is_name_exists を利用
+                printf("エラー: 指定された名前の受験者データは存在しません。\n");
+                continue; // 名前入力を再度促す
+            }
+            break; // 名前が存在する場合は次の処理へ
+        } else if (ret == 1) {
             printf("エラー: 名前を入力してください。\n");
-        } else if (ret == 2) { // NAME_ERR_LENGTH
+        } else if (ret == 2) {
             printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
-        } else if (ret == 3) { // NAME_ERR_INVALID_CHAR
+        } else if (ret == 3) {
             printf("エラー: 名前は全角カタカナで入力してください。\n");
         } else {
             printf("エラー: 名前の形式が正しくありません。\n");
         }
     }
 
-    // DB削除実行
+    // 名前が存在する場合に削除を実行
     int rc = delete_examinee_all(db, name);
     if (rc != 0) {
         printf("データベース削除に失敗しました。\n");
@@ -143,6 +174,10 @@ int delete_examinee_examday_with_validation(sqlite3 *db) {
 
         int ret = validate_name(name);
         if (ret == 0) {
+            if (!is_name_exists(db, name)) { // is_name_exists を利用
+                printf("エラー: 指定された名前の受験者データは存在しません。\n");
+                continue; // 名前入力を再度促す
+            }
             break;
         } else if (ret == 1) {
             printf("エラー: 名前を入力してください。\n");
@@ -174,6 +209,13 @@ int delete_examinee_examday_with_validation(sqlite3 *db) {
         if (!is_date_in_valid_range(exam_date_str)) continue;
 
         exam_day = atoi(exam_date_str);
+
+        if (!is_name_and_date_exists(db, name, exam_day)) {
+            printf("エラー: 指定された名前と試験日のデータは存在しません。\n");
+            continue; // 再入力を促す
+        }
+
+        
         break;
     }
 
