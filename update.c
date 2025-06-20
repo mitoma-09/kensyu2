@@ -7,6 +7,7 @@
 #include <time.h>
 #include <ctype.h>
 #include "update.h"
+#include "touroku.h"
 
 #define MAX_NAME_LEN 20
 
@@ -71,6 +72,8 @@ void examdata(sqlite3 *db) {
     int scores[9];
     const char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys", "chem", "bio"};
     const char *subjects_jp[] = {"国語", "数学", "英語", "日本史", "世界史", "地理", "物理", "化学", "生物"};
+
+    reset_db_connection(&db);
 
     printf("【受験者情報変更】\n");
    // 氏名入力とバリデーション
