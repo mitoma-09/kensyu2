@@ -453,7 +453,7 @@ int isFirstCall; // Callbackで初回かどうかを判定するフラグ
 
 //#define CLEAR_INPUT_BUFFER() while (getchar() != '\n') //エンターキー待機
 
-    sqlite3_stmt *stmt_select; // 検索 用　
+sqlite3_stmt *stmt_select; // 検索 用　
 sqlite3_stmt *stmt_insert; // 挿入 用
 sqlite3_stmt *stmt_update; // 更新 用
 sqlite3_stmt *stmt_disp;   // 表示 用　
