@@ -12,6 +12,9 @@ int validate_name(const char *name);
 void trim_input(char *str);
 int touroku_validate_date(const char *date_str);
 int is_date_in_valid_range(const char *date_str);
+int is_name_exists(sqlite3 *db, const char *name);
+int validate_subject(const char *subject);
+int is_name_and_subject_exists(sqlite3 *db, const char *name, int exam_day, const char *subject_column);
 
 // 以下はDB操作の本体
 //指定された受験者のすべてのデータを削除
@@ -75,6 +78,32 @@ int delete_examinee_examday(sqlite3 *db, const char *name, int exam_day) {
     sqlite3_finalize(stmt);
     return 0;
 }
+//指定された科目を削除（リセット）
+int delete_examinee_subject(sqlite3 *db, const char *name, int exam_day, const char *subject_column) {
+    sqlite3_stmt *stmt;
+    char sql[256];
+    snprintf(sql, sizeof(sql),
+        "UPDATE testtable SET %s = NULL WHERE name = ? AND exam_day = ?;", subject_column);
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "SQL文準備失敗: %s\n", sqlite3_errmsg(db));
+        return -1;
+    }
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 2, exam_day) != SQLITE_OK) {
+        fprintf(stderr, "バインド失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        fprintf(stderr, "実行失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+    sqlite3_finalize(stmt);
+    printf("受験者「%s」、試験日「%d」の科目「%s」の点数をリセットしました。\n", name, exam_day, subject_column);
+    return 0;
+}
 //指定された名前と日付がデータベースに存在するかを確認
 int is_name_and_date_exists(sqlite3 *db, const char *name, int exam_day) {
     sqlite3_stmt *stmt;
@@ -103,6 +132,146 @@ int is_name_and_date_exists(sqlite3 *db, const char *name, int exam_day) {
     return count > 0; // 件数が0より大きければ存在
 }
 
+// 指定された名前と試験日があり、その科目の点数がNULLでないかをチェックする関数
+int is_name_and_subject_exists(sqlite3 *db, const char *name, int exam_day, const char *subject_column) {
+    sqlite3_stmt *stmt;
+    char sql[256];
+    snprintf(sql, sizeof(sql),
+        "SELECT COUNT(*) FROM testtable WHERE name = ? AND exam_day = ? AND %s IS NOT NULL;", subject_column);
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "ステートメントの準備に失敗: %s\n", sqlite3_errmsg(db));
+        return 0;
+    }
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 2, exam_day) != SQLITE_OK) {
+        fprintf(stderr, "バインドに失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+
+    int count = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        count = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return count > 0;
+}
+
+// 科目削除（指定された名前と科目のデータを削除）
+int delete_examinee_subject_with_validation(sqlite3 *db) {
+    char name[61];
+    char exam_date_str[16];
+    int exam_day;
+    char input[16];
+
+    // 科目選択用配列（ここはテーブルのカラム名と対応）
+    const char *subjects[] = {
+        "nLang", "math", "Eng", "JHist", "wHist", "geo", "phys", "chem", "bio"
+    };
+    const char *subjects_ja[] = {
+        "国語", "数学", "英語", "日本史", "世界史", "地理", "物理", "化学", "生物"
+    };
+    const int subject_count = sizeof(subjects) / sizeof(subjects[0]);
+
+    // 名前入力チェック
+    while (1) {
+        printf("科目の点数をリセットする受験者の名前を全角カタカナで入力してください（20文字以内）: ");
+        if (fgets(name, sizeof(name), stdin) == NULL) {
+            printf("入力エラーが発生しました。再度入力してください。\n");
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            continue;
+        }
+        size_t len = strlen(name);
+        if (len > 0 && name[len - 1] == '\n') name[len - 1] = '\0';
+        else {
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            printf("エラー: 入力が長すぎます。20文字以内で入力してください。\n");
+            continue;
+        }
+        trim_input(name);
+
+        int ret = validate_name(name);
+        if (ret == 0) {
+            if (!is_name_exists(db, name)) {
+                printf("エラー: 指定された名前の受験者データは存在しません。\n");
+                continue;
+            }
+            break;
+        } else if (ret == 1) {
+            printf("エラー: 名前を入力してください。\n");
+        } else if (ret == 2) {
+            printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+        } else if (ret == 3) {
+            printf("エラー: 名前は全角カタカナで入力してください。\n");
+        } else {
+            printf("エラー: 名前の形式が正しくありません。\n");
+        }
+    }
+
+    // 試験日入力チェック
+    while (1) {
+        printf("科目の点数をリセットする試験日を8桁で入力してください（例: 20250513）: ");
+        if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
+            printf("入力エラーが発生しました。\n");
+            continue;
+        }
+        exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
+        trim_input(exam_date_str);
+
+        if (strlen(exam_date_str) != 8 || strspn(exam_date_str, "0123456789") != 8) {
+            printf("エラー: 試験日は8桁の数字で入力してください（例: 20250513）。\n");
+            continue;
+        }
+
+        if (!touroku_validate_date(exam_date_str)) continue;
+        if (!is_date_in_valid_range(exam_date_str)) continue;
+
+        exam_day = atoi(exam_date_str);
+
+        if (!is_name_and_date_exists(db, name, exam_day)) {
+            printf("エラー: 指定された名前と試験日のデータは存在しません。\n");
+            continue;
+        }
+        break;
+    }
+
+    // 科目選択
+    while (1) {
+        printf("リセットする科目を番号で選択してください:\n");
+        for (int i = 0; i < subject_count; i++) {
+            printf("%d. %s\n", i + 1, subjects_ja[i]);
+        }
+        printf("番号を入力 > ");
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("入力エラーです。\n");
+            continue;
+        }
+        input[strcspn(input, "\n")] = '\0';
+
+        int num = atoi(input);
+        if (num < 1 || num > subject_count) {
+            printf("1～%dの番号を入力してください。\n", subject_count);
+            continue;
+        }
+
+        // ここで指定された科目の点数がNULLかどうかをチェック
+        if (!is_name_and_subject_exists(db, name, exam_day, subjects[num - 1])) {
+            printf("エラー: 指定された科目の点数は既にリセットされています。\n");
+            continue; // 再度選択を促す
+        }
+
+        // 科目点数をNULLにする関数を呼び出し
+        int rc = delete_examinee_subject(db, name, exam_day, subjects[num - 1]);
+        if (rc != 0) {
+            printf("科目点数リセットに失敗しました。\n");
+            return rc;
+        }
+        break;
+    }
+
+    return 0;
+}
 
 // 受験者単位削除＋入力チェック
 int delete_examinee_all_with_validation(sqlite3 *db) {
@@ -270,8 +439,9 @@ void delete_menu(sqlite3 *db) {
         printf("\n=== 削除メニュー ===\n");
         printf("1. 受験者単位の削除\n");
         printf("2. 試験単位の削除\n");
-        printf("3. 全てのデータを削除(IDもリセットされます）\n");
-        printf("4. キャンセル\n");
+        printf("3. 科目単位の削除\n");
+        printf("4. 全てのデータを削除(IDもリセットされます）\n");
+        printf("5. キャンセル\n");
         printf("番号を入力してください > ");
 
         char input[10];
@@ -310,6 +480,11 @@ void delete_menu(sqlite3 *db) {
             }
             break;
         } else if (choice == 3) {
+            if (delete_examinee_subject_with_validation(db) != 0) {
+                printf("科目単位の削除に失敗しました。\n");
+            }
+            break;
+        } else if (choice == 4) {
             char confirm1[8];
             char confirm2[8];
             printf("本当に全てのデータを削除しますか？ [y/N]: ");
@@ -335,11 +510,11 @@ void delete_menu(sqlite3 *db) {
                 printf("全てのデータ削除をキャンセルしました。\n");
             }
             break;
-        } else if (choice == 4) {
+        } else if (choice == 5) {
             printf("削除操作をキャンセルしました。\n");
             break;
         } else {
-            printf("1～4の数字を入力してください。\n");
+            printf("1～5の数字を入力してください。\n");
         }
     }
 }
