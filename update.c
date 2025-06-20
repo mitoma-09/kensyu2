@@ -61,11 +61,29 @@ int input_score(const char *subject) {
             printf("無効な点数です。再入力してください。\n");
             while (getchar() != '\n');
         } else {
-            while (getchar() != '\n'); // バッファクリア
+            while (getchar() != '\n');
             return score;
         }
     }
 }
+
+// 選択科目（NULL可）
+/*
+int input_score_nullable(const char *subject) {
+    char buffer[10];
+    int score;
+    while (1) {
+        printf("%s の点数（0～100、未選択=N）: ", subject);
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+        if (strcmp(buffer, "N") == 0 || strcmp(buffer, "n") == 0) return -1;
+        if (sscanf(buffer, "%d", &score) == 1 && score >= 0 && score <= 100) return score;
+        printf("無効な入力。0～100の数値かNを指定してください。\n");
+    }
+}
+*/
+
+
 
 // メイン更新関数  
 /*
@@ -366,7 +384,7 @@ void examdata(sqlite3 *db) {
     sqlite3_finalize(stmt_update);
 }
 */
-
+/*
 void examdata(sqlite3 *db) {
     int id;
     char name[100], exam_day[100];
@@ -448,32 +466,33 @@ void examdata(sqlite3 *db) {
             }
         }
 
-        switch(choice) {
-            case 1:
-                while(1) {
-                    printf("新しい氏名（カタカナ20文字以内）: ");
-                    fgets(name, sizeof(name), stdin);
-                    name[strcspn(name, "\n")] = '\0';
-                    int res = validate_name_update(name);
-                    if (res == NAME_VALID) break;
-                    printf("無効な氏名です。\n");
-                }
-                break;
-            case 2:
-                while(1) {
-                    printf("新しい試験日（YYYYMMDD）: ");
-                    fgets(exam_day, sizeof(exam_day), stdin);
-                    exam_day[strcspn(exam_day, "\n")] = '\0';
-                    if (is_valid_date(exam_day)) break;
-                    printf("無効な日付です。\n");
-                }
-                break;
-            case 3 ... 11:
+        if (choice == 1) {
+            while(1) {
+                printf("新しい氏名: ");
+                fgets(name, sizeof(name), stdin);
+                name[strcspn(name, "\n")] = '\0';
+                if (validate_name_update(name) == NAME_VALID) break;
+                printf("無効な氏名\n");
+            }
+        } else if (choice == 2) {
+            while(1) {
+                printf("新しい試験日: ");
+                fgets(exam_day, sizeof(exam_day), stdin);
+                exam_day[strcspn(exam_day, "\n")] = '\0';
+                if (is_valid_date(exam_day)) break;
+                printf("無効な日付\n");
+            }
+        } else {
+            if (choice >= 3 && choice <= 5) {
                 scores[choice - 3] = input_score(subjects_jp[choice - 3]);
-                break;
+            } else {
+                scores[choice - 3] = input_score_nullable(subjects_jp[choice - 3]);
+            }
         }
+*/
 
-        sqlite3_stmt *stmt_update;
+/*
+ sqlite3_stmt *stmt_update;
         char sql_update[256];
         if (choice == 1) {
             strcpy(sql_update, "UPDATE testtable SET name=? WHERE ID=?");
@@ -500,6 +519,179 @@ void examdata(sqlite3 *db) {
 
         if (sqlite3_step(stmt_update) == SQLITE_DONE) {
             printf("更新成功。\n");  // ←ここでループに戻る
+        } else {
+            printf("更新失敗: %s\n", sqlite3_errmsg(db));
+        }
+        sqlite3_finalize(stmt_update);
+*/
+      /*
+       sqlite3_stmt *stmt_update;
+        char sql_update[256];
+        if (choice == 1) {
+            strcpy(sql_update, "UPDATE testtable SET name=? WHERE ID=?");
+        } else if (choice == 2) {
+            strcpy(sql_update, "UPDATE testtable SET exam_day=? WHERE ID=?");
+        } else {
+            snprintf(sql_update, sizeof(sql_update), "UPDATE testtable SET %s=? WHERE ID=?", subjects[choice - 3]);
+        }
+
+        if (sqlite3_prepare_v2(db, sql_update, -1, &stmt_update, NULL) != SQLITE_OK) { printf("SQLエラー\n"); continue; }
+        if (choice == 1) {
+            sqlite3_bind_text(stmt_update, 1, name, -1, SQLITE_STATIC);
+        } else if (choice == 2) {
+            sqlite3_bind_int(stmt_update, 1, atoi(exam_day));
+        } else {
+            if (scores[choice - 3] == -1) sqlite3_bind_null(stmt_update, 1);
+            else sqlite3_bind_int(stmt_update, 1, scores[choice - 3]);
+        }
+        sqlite3_bind_int(stmt_update, 2, id);
+        if (sqlite3_step(stmt_update) == SQLITE_DONE) printf("更新成功\n");
+        else printf("更新失敗\n");
+        sqlite3_finalize(stmt_update);
+      */
+
+      void examdata(sqlite3 *db) {
+    int id;
+    char name[100], exam_day[100];
+    int scores[9];
+    const char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys", "chem", "bio"};
+    const char *subjects_jp[] = {"国語", "数学", "英語", "日本史", "世界史", "地理", "物理", "化学", "生物"};
+
+    printf("【受験者情報変更】\n");
+    printf("変更対象の受験者IDを入力してください: ");
+    scanf("%d", &id);
+    while(getchar() != '\n');
+
+    sqlite3_stmt *stmt_select;
+    const char *sql_select =
+        "SELECT name, exam_day, nLang, math, Eng, JHist, wHist, geo, phys, chem, bio FROM testtable WHERE ID = ?";
+
+    if (sqlite3_prepare_v2(db, sql_select, -1, &stmt_select, NULL) != SQLITE_OK) {
+        printf("SQLエラー: %s\n", sqlite3_errmsg(db));
+        return;
+    }
+    sqlite3_bind_int(stmt_select, 1, id);
+
+    int rc = sqlite3_step(stmt_select);
+    if (rc != SQLITE_ROW) {
+        printf("該当IDのデータが見つかりません。\n");
+        sqlite3_finalize(stmt_select);
+        return;
+    }
+
+    const unsigned char *db_name = sqlite3_column_text(stmt_select, 0);
+    int db_exam_day = sqlite3_column_int(stmt_select, 1);
+    strncpy(name, (const char *)db_name, sizeof(name));
+    name[sizeof(name)-1] = '\0';
+    snprintf(exam_day, sizeof(exam_day), "%08d", db_exam_day);
+    for (int i = 0; i < 9; i++) {
+        scores[i] = sqlite3_column_int(stmt_select, 2 + i);
+    }
+    sqlite3_finalize(stmt_select);
+
+    while (1) {
+        printf("【現在の情報】\n");
+        printf("1. 氏名: %s\n", name);
+        printf("2. 試験日: %s\n", exam_day);
+        for (int i = 0; i < 9; i++) {
+            printf("%d. %s: %d\n", i + 3, subjects_jp[i], scores[i]);
+        }
+
+        int choice;
+        printf("変更する項目の番号を入力（0で終了）: ");
+        scanf("%d", &choice);
+        while(getchar() != '\n');
+
+        if (choice == 0) {
+            printf("変更を終了します。\n");
+            break;
+        }
+
+        if (choice < 1 || choice > 11) {
+            printf("無効な番号です。\n");
+            continue;
+        }
+
+        if (choice >= 3 && choice <= 11) {
+            int index = choice - 3;
+            int new_score;
+
+            int is_mandatory = (index <= 2);
+            while (1) {
+                printf("%s の点数（0～100, -1で選択解除）: ", subjects_jp[index]);
+                if (scanf("%d", &new_score) != 1) {
+                    printf("数値で入力してください。\n");
+                    while(getchar() != '\n');
+                    continue;
+                }
+                while(getchar() != '\n');
+
+                if (is_mandatory && new_score == -1) {
+                    printf("必須科目は選択解除（NULL）できません。\n");
+                    continue;
+                }
+                if (new_score == -1) {
+                    scores[index] = -1;
+                    printf("%s を選択解除しました（NULL化）。\n", subjects_jp[index]);
+                    break;
+                }
+                if (new_score < 0 || new_score > 100) {
+                    printf("0～100の範囲で入力してください。\n");
+                    continue;
+                }
+                scores[index] = new_score;
+                break;
+            }
+        } else if (choice == 1) {
+            while(1) {
+                printf("新しい氏名（カタカナ20文字以内）: ");
+                fgets(name, sizeof(name), stdin);
+                name[strcspn(name, "\n")] = '\0';
+                int res = validate_name_update(name);
+                if (res == NAME_VALID) break;
+                printf("無効な氏名です。\n");
+            }
+        } else if (choice == 2) {
+            while(1) {
+                printf("新しい試験日（YYYYMMDD）: ");
+                fgets(exam_day, sizeof(exam_day), stdin);
+                exam_day[strcspn(exam_day, "\n")] = '\0';
+                if (is_valid_date(exam_day)) break;
+                printf("無効な日付です。\n");
+            }
+        }
+
+        sqlite3_stmt *stmt_update;
+        char sql_update[256];
+        if (choice == 1) {
+            strcpy(sql_update, "UPDATE testtable SET name=? WHERE ID=?");
+        } else if (choice == 2) {
+            strcpy(sql_update, "UPDATE testtable SET exam_day=? WHERE ID=?");
+        } else {
+            snprintf(sql_update, sizeof(sql_update),
+                "UPDATE testtable SET %s=? WHERE ID=?", subjects[choice - 3]);
+        }
+
+        if (sqlite3_prepare_v2(db, sql_update, -1, &stmt_update, NULL) != SQLITE_OK) {
+            printf("SQLエラー: %s\n", sqlite3_errmsg(db));
+            return;
+        }
+
+        if (choice == 1) {
+            sqlite3_bind_text(stmt_update, 1, name, -1, SQLITE_STATIC);
+        } else if (choice == 2) {
+            sqlite3_bind_int(stmt_update, 1, atoi(exam_day));
+        } else {
+            if (scores[choice - 3] == -1) {
+                sqlite3_bind_null(stmt_update, 1);
+            } else {
+                sqlite3_bind_int(stmt_update, 1, scores[choice - 3]);
+            }
+        }
+        sqlite3_bind_int(stmt_update, 2, id);
+
+        if (sqlite3_step(stmt_update) == SQLITE_DONE) {
+            printf("更新成功。\n");
         } else {
             printf("更新失敗: %s\n", sqlite3_errmsg(db));
         }
