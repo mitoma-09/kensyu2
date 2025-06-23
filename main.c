@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
         printf(">");
 
         if (scanf("%d", &firstNum) != 1) {
-            printf("無効な入力です。数字を入力してください。\n");
+            printf("無効な入力です。半角数字を入力してください。\n");
             while (getchar() != '\n'); // 不正な入力をクリア
             firstNum = -1; // ループを継続させるための範囲外の値
             continue;
