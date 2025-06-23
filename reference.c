@@ -767,6 +767,7 @@ int disp_choice2(void){
     printf(" 3)全試験における全科目平均点数以下の受験者一覧\n");
     printf(" 4)全試験における各科目偏差値一覧\n");
     printf(" 5)試験実施日毎の各科目偏差値一覧\n");
+    printf(" 9)参照機能を終了\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
     scanf("%d", &b);
@@ -848,11 +849,15 @@ int disp_choice2(void){
 
     case 7:
     case 8:
-    case 9:
         printf("表示できるものがありません。\n");
         printf("最初からやり直してください\n");
         return 1;
         break;
+    case 9:
+        return 0;
+        break;
+
+        
     case 0:
 
         return disp_choice1();
