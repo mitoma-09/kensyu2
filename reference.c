@@ -202,7 +202,7 @@ int callback(void *NotUsed, int argc, char **argv, char **colName){
     setlocale(LC_ALL, "");
 
     // 各カラムの希望する表示幅
-    int field_widths[3] = {6, 35, 6}; // IDは6桁、nameは15桁、exam_dayは6桁
+    int field_widths[3] = {6, 35, 10}; // IDは6桁、nameは15桁、exam_dayは6桁
 
     if (isFirstCall){
         // ヘッダーを出力
@@ -394,7 +394,7 @@ int callback_total_stats(void *data, int argc, char **argv, char **azColName){
     TotalStats *stats = (TotalStats *)data;
     setlocale(LC_ALL, "");
     extern int isFirstCall; // 初回かどうかを判定するフラグ
-    int field_widths[4] = {25, 10, 6, 10}; // name25桁、day10桁、その他6桁
+    int field_widths[4] = {35, 10, 6, 10}; // name25桁、day10桁、その他6桁
 
     if (isFirstCall){
         print_field("name", field_widths[0]);
@@ -580,13 +580,19 @@ int disp_choice1(void){
     printf(" 9)全試験における各科目平均点数\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
-    scanf("%d", &b);
+
+
+    if (scanf("%1d", &b) != 1){
+        fprintf(stderr, "入力エラー\n");
+        return 1;
+    }
+    clear_input_buffer();
 
     switch (b){
     case 1:
         printf("IDに対応する試験者と試験実施日を表示します\n");
         //clear_input_buffer();
-        wait_for_enter();
+        //wait_for_enter();
         disp_ID(text);
 
         //printf("SQLite version: %s\n", sqlite3_libversion());
@@ -699,7 +705,7 @@ int disp_choice1(void){
     case 7:
         printf("全試験における各科目合計トップ10を表示します\n");
         //CLEAR_INPUT_BUFFER();
-        wait_for_enter();
+        //wait_for_enter();
         for (int i = 0; i < NUM_SUBJECT; i++){  // subjectの回数ループ
             isFirstCall = 1;                    // ヘッダーの表示リセット
             top_sort(10, subjects[i], text);    // 別のクラスで処理
@@ -721,7 +727,7 @@ int disp_choice1(void){
     case 9:
         printf("全試験における各科目平均点数を表示します\n");
         //CLEAR_INPUT_BUFFER();
-        wait_for_enter();
+        //wait_for_enter();
         for (int i = 0; i < NUM_SUBJECT; i++){ // subjectの回数ループ
             isFirstCall = 1;                   // ヘッダーの表示リセット
             average = calc_subject_average(subjects[i],0,text);
@@ -767,10 +773,15 @@ int disp_choice2(void){
     printf(" 3)全試験における全科目平均点数以下の受験者一覧\n");
     printf(" 4)全試験における各科目偏差値一覧\n");
     printf(" 5)試験実施日毎の各科目偏差値一覧\n");
+
     printf(" 9)参照機能を終了\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
-    scanf("%d", &b);
+    if (scanf("%1d", &b) != 1){
+        fprintf(stderr, "入力エラー\n");
+        return 1;
+    }
+    clear_input_buffer();
 
     switch (b){
     case 1:
@@ -784,7 +795,7 @@ int disp_choice2(void){
     case 2:
         printf("全試験における各科目平均点数以下の受験者一覧を表示します\n");
         //CLEAR_INPUT_BUFFER();
-        wait_for_enter();
+        //wait_for_enter();
         for (int i = 0; i < NUM_SUBJECT; i++){    // subjectの回数ループ
             isFirstCall = 1;                      // ヘッダーのリセット
             under_average_all(subjects[i], text); // 別のクラスで処理
@@ -809,10 +820,10 @@ int disp_choice2(void){
         
         for (int i = 0; i < NUM_SUBJECT; i++){
             isFirstCall = 1; // ヘッダーのリセット
-            wait_for_enter();
+            
             display_deviation_scores(subjects[i], 0, text);
             //CLEAR_INPUT_BUFFER();
-            
+            wait_for_enter();
         }
             break;
 
@@ -1463,7 +1474,7 @@ void display_deviation_scores(const char *subject, int day, char *text){
         return;
     }
     printf("%sの平均点は %.1f, 標準偏差は %.1f です。\n", subject, avg, std);
-    printf("偏差値（50 + 10 * (得点 - 平均)/標準偏差）を計算します。\n");
+    //printf("偏差値（50 + 10 * (得点 - 平均)/標準偏差）を計算します。\n");
     // 各学生の得点を取得するためのクエリを作成
     if (day > 0){
         snprintf(text, MAX_SQL_SIZE,
@@ -1517,7 +1528,7 @@ void display_total_deviation_scores(char *text){
         return;
     }
     printf("合計得点の平均は %.1f, 標準偏差は %.1f です。\n", stats.avg, stats.std);
-    printf("偏差値（50 + 10 * (得点 - 平均)/標準偏差）を計算します。\n");
+    //printf("偏差値（50 + 10 * (得点 - 平均)/標準偏差）を計算します。\n");
 
     /* ② 各生徒ごとの合計得点とその偏差値を取得するクエリを作成
           CTE内で既に個々の合計得点を算出してから、偏差値の計算を行います */
