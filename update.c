@@ -52,14 +52,34 @@ int is_valid_date(const char *str) {
 
 // 点数入力
 int input_score(const char *subject) {
+    char input[100];
     int score;
     while (1) {
         printf("%s の点数（0～100）: ", subject);
-        if (scanf("%d", &score) != 1 || score < 0 || score > 100) {
-            printf("無効な点数です。再入力してください。\n");
-            while (getchar() != '\n');
+        fgets(input, sizeof(input), stdin);
+        input[strcspn(input, "\n")] = '\0';
+
+        // 全角数字チェック
+        int is_full_width = 0;
+        for (size_t i = 0; i < strlen(input); i++) {
+            if ((unsigned char)input[i] >= 0x81 && (unsigned char)input[i] <= 0x9F) {
+                is_full_width = 1;
+                break;
+            }
+            if ((unsigned char)input[i] >= 0xE0 && (unsigned char)input[i] <= 0xFC) {
+                is_full_width = 1;
+                break;
+            }
+        }
+
+        if (is_full_width) {
+            printf("エラー: 半角で入力してください。\n");
+            continue;
+        }
+
+        if (sscanf(input, "%d", &score) != 1 || score < 0 || score > 100) {
+            printf("無効な点数です。0～100の範囲で半角で入力してください。\n");
         } else {
-            while (getchar() != '\n');
             return score;
         }
     }
@@ -68,20 +88,27 @@ int input_score(const char *subject) {
 // 更新メイン
 void examdata(sqlite3 *db) {
     int menu_choice;
+    while (1) {  // メニュー選択のループ
     printf("受験者情報変更メニュー\n");
     printf("1. 受験者情報変更\n");
     printf("0. 終了（メインメニューに戻る）\n");
     printf("選択してください: ");
-    scanf("%d", &menu_choice);
+    if (scanf("%d", &menu_choice) != 1) {
+        while(getchar() != '\n'); // 入力バッファクリア
+        printf("0～1の数字を入力してください。\n");
+        continue;
+    }
     while(getchar() != '\n'); // バッファクリア
 
     if(menu_choice == 0){
         printf("メインメニューに戻ります。\n");
         return;
-    } else if(menu_choice != 1){
-        printf("無効な選択です。メインメニューに戻ります。\n");
-        return;
+    } else if(menu_choice == 1){
+        break; // 正常な選択→ループ脱出
+    } else {
+        printf("無効な選択です。もう一度選択してください。\n");
     }
+}
     int id;
     char name[100], exam_day[100];
     int scores[9];
@@ -92,40 +119,61 @@ void examdata(sqlite3 *db) {
 
     printf("受験者情報変更\n");
    // 氏名入力とバリデーション
-    while(1) {
+   while(1) {
         printf("氏名を入力してください（カタカナ20文字以内）: ");
         fgets(name, sizeof(name), stdin);
         name[strcspn(name, "\n")] = '\0';
         int res = validate_name_update(name);
-        if (res == NAME_VALID) break;
-        printf("無効な氏名です。再入力してください。\n");
-    }
+        if (res != NAME_VALID) {
+            printf("無効な氏名です。再入力してください。\n");
+            continue;
+        }
 
-    // DBから名前で検索（最初の1件を取得）
-   sqlite3_stmt *stmt_select;
-    const char *sql_select =
-        "SELECT ID, exam_day, nLang, math, Eng, JHist, wHist, geo, phys, chem, bio "
-        "FROM testtable WHERE name = ? LIMIT 1";
-    if (sqlite3_prepare_v2(db, sql_select, -1, &stmt_select, NULL) != SQLITE_OK) {
-        printf("SQLエラー: %s\n", sqlite3_errmsg(db));
-        return;
-    }
-    sqlite3_bind_text(stmt_select, 1, name, -1, SQLITE_STATIC);
+        sqlite3_stmt *stmt_select;
+        const char *sql_select =
+            "SELECT ID, exam_day, nLang, math, Eng, JHist, wHist, geo, phys, chem, bio "
+            "FROM testtable WHERE name = ? LIMIT 1";
+        if (sqlite3_prepare_v2(db, sql_select, -1, &stmt_select, NULL) != SQLITE_OK) {
+            printf("SQLエラー: %s\n", sqlite3_errmsg(db));
+            return;
+        }
+        sqlite3_bind_text(stmt_select, 1, name, -1, SQLITE_STATIC);
 
-    int rc = sqlite3_step(stmt_select);
-    if (rc != SQLITE_ROW) {
-        printf("該当する受験者が見つかりません。\n");
-        sqlite3_finalize(stmt_select);
-        return;
+        int rc = sqlite3_step(stmt_select);
+        if (rc == SQLITE_ROW) {
+            id = sqlite3_column_int(stmt_select, 0);
+            int db_exam_day = sqlite3_column_int(stmt_select, 1);
+            snprintf(exam_day, sizeof(exam_day), "%08d", db_exam_day);
+            for (int i = 0; i < 9; i++) {
+                scores[i] = sqlite3_column_int(stmt_select, 2 + i);
+            }
+            sqlite3_finalize(stmt_select);
+            break;
+        } else {
+            sqlite3_finalize(stmt_select);
+            int select_back;
+            while(1){
+                printf("該当する受験者が見つかりません。\n");
+                printf("1. 氏名を再入力する\n");
+                printf("0. 受験者情報変更メニューに戻る\n");
+                printf("選択してください: ");
+                if(scanf("%d", &select_back) != 1){
+                    while(getchar() != '\n');
+                    printf("無効な入力です。\n");
+                    continue;
+                }
+                while(getchar() != '\n');
+                if(select_back == 1){
+                    break;
+                } else if(select_back == 0){
+                    printf("受験者情報変更メニューに戻ります。\n");
+                    return;
+                } else {
+                    printf("無効な選択です。\n");
+                }
+            }
+        }
     }
-
-    id = sqlite3_column_int(stmt_select, 0);
-    int db_exam_day = sqlite3_column_int(stmt_select, 1);
-    snprintf(exam_day, sizeof(exam_day), "%08d", db_exam_day);
-    for (int i = 0; i < 9; i++) {
-        scores[i] = sqlite3_column_int(stmt_select, 2 + i);
-    }
-    sqlite3_finalize(stmt_select);
 
      // ここから編集ループ（IDとnameは固定）
     int society_chosen = -1, science_chosen = -1;
@@ -145,32 +193,55 @@ void examdata(sqlite3 *db) {
         }
 }
         int choice;
-        printf("変更する項目の番号を入力（0で終了）: ");
-        scanf("%d", &choice);
-        while(getchar() != '\n');
+        char choice_input[100];
+        while (1) {
+            printf("変更する項目の番号を入力（0でメインメニューに戻ります）: ");
+            fgets(choice_input, sizeof(choice_input), stdin);
+            choice_input[strcspn(choice_input, "\n")] = '\0'; // 改行削除
 
-        if (choice == 0) {
-            printf("変更を終了します。\n");
+            // 全角チェック
+            int zenkaku_flag = 0;
+            for (size_t i = 0; i < strlen(choice_input); i++) {
+                if ((unsigned char)choice_input[i] >= 0x80) { // 全角は0x80以上
+                    zenkaku_flag = 1;
+                    break;
+                }
+            }
+
+            if (zenkaku_flag) {
+                printf("エラー: 半角数字で入力してください。\n");
+                continue;
+            }
+
+            if (sscanf(choice_input, "%d", &choice) != 1) {
+                printf("無効な入力です。再入力してください。\n");
+                continue;
+            }
+
+            if (choice < 0 || choice > 11) {
+                printf("無効な番号です。再入力してください。\n");
+                continue;
+            }
+
             break;
         }
+                if (choice == 0) {
+                printf("変更を終了します。\n");
+                break;  // ★この行（だいたい303行目）
+}
 
-        if (choice < 1 || choice > 11) {
-            printf("無効な番号です。\n");
-            continue;
-        }
-
-        if (choice >= 6 && choice <= 11) {
-            int idx = choice - 3;
-            // 選択科目更新制限
-            if (idx >= 3 && idx <= 5 && society_chosen != idx && society_chosen != -1) {
-                printf("エラー: 他の科目が登録されています。削除機能で登録した科目を削除してください。\n");
-                continue;
-            }
-            if (idx >= 6 && idx <= 8 && science_chosen != idx && science_chosen != -1) {
-                printf("エラー: 他の科目が登録されています。削除機能で登録した科目を削除してください。\n");
-                continue;
-            }
-        }
+                if (choice >= 6 && choice <= 11) {
+                    int idx = choice - 3;
+                    // 選択科目更新制限
+                    if (idx >= 3 && idx <= 5 && society_chosen != idx && society_chosen != -1) {
+                        printf("エラー: 他の科目が登録されています。削除機能で登録した科目を削除してください。\n");
+                        continue;
+                    }
+                    if (idx >= 6 && idx <= 8 && science_chosen != idx && science_chosen != -1) {
+                        printf("エラー: 他の科目が登録されています。削除機能で登録した科目を削除してください。\n");
+                        continue;
+                    }
+                }
 
         switch(choice) {
             case 1:
