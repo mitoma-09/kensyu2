@@ -67,6 +67,21 @@ int input_score(const char *subject) {
 
 // 更新メイン
 void examdata(sqlite3 *db) {
+    int menu_choice;
+    printf("受験者情報変更メニュー\n");
+    printf("1. 受験者情報変更\n");
+    printf("0. 終了（メインメニューに戻る）\n");
+    printf("選択してください: ");
+    scanf("%d", &menu_choice);
+    while(getchar() != '\n'); // バッファクリア
+
+    if(menu_choice == 0){
+        printf("メインメニューに戻ります。\n");
+        return;
+    } else if(menu_choice != 1){
+        printf("無効な選択です。メインメニューに戻ります。\n");
+        return;
+    }
     int id;
     char name[100], exam_day[100];
     int scores[9];
@@ -75,7 +90,7 @@ void examdata(sqlite3 *db) {
 
     reset_db_connection(&db);
 
-    printf("【受験者情報変更】\n");
+    printf("受験者情報変更\n");
    // 氏名入力とバリデーション
     while(1) {
         printf("氏名を入力してください（カタカナ20文字以内）: ");
@@ -180,8 +195,8 @@ void examdata(sqlite3 *db) {
             case 3 ... 11: {
                 int idx = choice - 3;
                 int score = input_score(subjects_jp[idx]);
-                if (idx <= 2 && score == -1) {
-                    printf("エラー: 必須科目は選択解除できません。\n");
+                if (score == -1) {
+                    printf("エラー: -1 は無効です。0～100の範囲で入力してください。\n");
                     continue;
                 }
                 if (score == -1) score = 0; // 選択解除処理
