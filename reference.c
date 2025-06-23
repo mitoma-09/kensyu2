@@ -202,7 +202,7 @@ int callback(void *NotUsed, int argc, char **argv, char **colName){
     setlocale(LC_ALL, "");
 
     // 各カラムの希望する表示幅
-    int field_widths[3] = {6, 35, 6}; // IDは6桁、nameは15桁、exam_dayは6桁
+    int field_widths[3] = {6, 35, 10}; // IDは6桁、nameは15桁、exam_dayは6桁
 
     if (isFirstCall){
         // ヘッダーを出力
@@ -394,7 +394,7 @@ int callback_total_stats(void *data, int argc, char **argv, char **azColName){
     TotalStats *stats = (TotalStats *)data;
     setlocale(LC_ALL, "");
     extern int isFirstCall; // 初回かどうかを判定するフラグ
-    int field_widths[4] = {25, 10, 6, 10}; // name25桁、day10桁、その他6桁
+    int field_widths[4] = {35, 10, 6, 10}; // name25桁、day10桁、その他6桁
 
     if (isFirstCall){
         print_field("name", field_widths[0]);
@@ -767,6 +767,7 @@ int disp_choice2(void){
     printf(" 3)全試験における全科目平均点数以下の受験者一覧\n");
     printf(" 4)全試験における各科目偏差値一覧\n");
     printf(" 5)試験実施日毎の各科目偏差値一覧\n");
+
     printf(" 9)参照機能を終了\n");
     printf(" 0)その他の機能\n");
     printf("利用したい機能を半角数字で入力してください:");
