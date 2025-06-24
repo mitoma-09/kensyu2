@@ -554,7 +554,7 @@ int reference(sqlite3 *database){
         printf("参照機能を終了します\n");
         wait_for_enter();
     }else{
-        // printf("もう一度やり直してください\n");
+        printf("もう一度やり直してください\n\n");
     }
 
     return 0;
@@ -584,6 +584,7 @@ int disp_choice1(void){
 
     if (scanf("%1d", &b) != 1){
         fprintf(stderr, "入力エラー\n");
+        clear_input_buffer();
         return 1;
     }
     clear_input_buffer();
@@ -779,6 +780,7 @@ int disp_choice2(void){
     printf("利用したい機能を半角数字で入力してください:");
     if (scanf("%1d", &b) != 1){
         fprintf(stderr, "入力エラー\n");
+        clear_input_buffer();
         return 1;
     }
     clear_input_buffer();
