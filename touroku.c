@@ -160,26 +160,26 @@ int validate_name(const char *name) {
     }
 
     // デバッグ: 入力された名前を表示
-    printf("[DEBUG] 入力された名前: '%s', 長さ: %zu\n", name, strlen(name));
+    //printf("[DEBUG] 入力された名前: '%s', 長さ: %zu\n", name, strlen(name));
 
     // 文字列を1文字ずつ検証
     while (*ptr) {
         mblen = mbrtowc(&wc, ptr, MB_CUR_MAX, &state);
         if (mblen == (size_t)-1 || mblen == (size_t)-2) {
-            printf("[DEBUG] 無効な文字エラー: バイト=%zu, errno=%d\n", mblen, errno);
+            //printf("[DEBUG] 無効な文字エラー: バイト=%zu, errno=%d\n", mblen, errno);
             return NAME_ERR_INVALID_CHAR;
         }
 
         // 全角カタカナの範囲判定（長音符はOK）
         if (!((wc >= 0x30A1 && wc <= 0x30FA) || wc == 0x30FC)) {
-            printf("[DEBUG] 無効な文字: '%lc'\n", wc);
+            //printf("[DEBUG] 無効な文字: '%lc'\n", wc);
             return NAME_ERR_INVALID_CHAR;
         }
 
         // 文字数カウント
         char_count++;
         if (char_count > 20) {
-            printf("[DEBUG] 文字数超過: %d\n", char_count);
+            //printf("[DEBUG] 文字数超過: %d\n", char_count);
             return NAME_ERR_LENGTH;
         }
 
@@ -188,7 +188,7 @@ int validate_name(const char *name) {
     }
 
     // デバッグ: 正常終了
-    printf("[DEBUG] 文字数チェックOK: %d\n", char_count);
+    //printf("[DEBUG] 文字数チェックOK: %d\n", char_count);
     return NAME_VALID;
 }
 
@@ -530,7 +530,7 @@ do {
     trim_input(exam_date_str);
 
     // デバッグ出力：入力文字列と長さを表示
-    printf("[DEBUG] 入力文字列: '%s', 長さ: %zu\n", exam_date_str, strlen(exam_date_str));
+    //printf("[DEBUG] 入力文字列: '%s', 長さ: %zu\n", exam_date_str, strlen(exam_date_str));
 
     // 入力文字数チェック（8文字ピッタリでなければエラー）
     if (strlen(exam_date_str) != 8) {
