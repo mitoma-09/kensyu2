@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
                 examdata(db);
                 break;
             case 3: // 3.削除
-                printf("受験者情報の削除ができます。（仮実装）\n");
+                printf("受験者情報の削除ができます。\n");
                 delete_menu(db);           
                 break;
             case 4: // 4.参照
