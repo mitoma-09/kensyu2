@@ -280,6 +280,7 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
             return rc;
         }
         break;
+        }
     }
 
     return 0;
