@@ -983,7 +983,7 @@ int top_sort_day(int day, int person, char *subject, char *text){
     if (person > 0){
         snprintf(text, MAX_SQL_SIZE,
                  "SELECT * FROM ( "
-                 "SELECT name, exam_day, %s, RANK() OVER (ORDER BY %s DESC, ID ASC) AS ranking "
+                 "SELECT name, exam_day, %s, RANK() OVER (ORDER BY %s DESC) AS ranking "
                  "FROM %s WHERE %s IS NOT NULL AND exam_day = %d "
                  ") AS ranked_data "
                  "WHERE ranking <= %d "
