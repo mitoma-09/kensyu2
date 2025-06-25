@@ -244,7 +244,7 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
         printf("リセットする科目を番号で選択してください:\n");
         for (int i = 0; i < subject_count; i++) {
             printf("%d. %s\n", i + 1, subjects_ja[i]);
-            if (scores[i] == NULL) {
+            if (scores[i] == 0) {
             printf("入力されていません\n");
         } else {
             printf("%d\n", scores[i]);
