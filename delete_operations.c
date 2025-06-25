@@ -280,7 +280,7 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
     }
 
     return 0;
-}
+
 
 // 受験者単位削除＋入力チェック
 int delete_examinee_all_with_validation(sqlite3 *db) {
