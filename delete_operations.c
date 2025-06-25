@@ -6,6 +6,7 @@
 #include "sqlite3.h"
 #include "delete_operations.h"
 #include "touroku.h"
+#include "update.h"
 
 // 以下、名前の妥当性チェック関数や日付チェック関数
 int validate_name(const char *name);
