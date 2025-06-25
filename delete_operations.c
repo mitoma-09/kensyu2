@@ -237,7 +237,6 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
         break;
     }
      int id;
-    char name[100], exam_day[100];
     int scores[9];
     const char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys", "chem", "bio"};
     const char *subjects_jp[] = {"国語", "数学", "英語", "日本史", "世界史", "地理", "物理", "化学", "生物"};
