@@ -4,199 +4,517 @@
 #include <string.h>
 
 #include "sqlite3.h"
-#include "database.h" // create_tables などで TABLE_NAME が定義されている可能性あり
 #include "delete_operations.h"
+#include "touroku.h"
 
-// MAX_SQL_SIZE の定義は db_operations.h または共通ヘッダーに移動するのが理想的です
-// ここで定義する場合は他の場所と重複しないように注意
-#ifndef MAX_SQL_SIZE
-#define MAX_SQL_SIZE 2000
-#endif
+// 以下、名前の妥当性チェック関数や日付チェック関数
+int validate_name(const char *name);
+void trim_input(char *str);
+int touroku_validate_date(const char *date_str);
+int is_date_in_valid_range(const char *date_str);
+int is_name_exists(sqlite3 *db, const char *name);
+int validate_subject(const char *subject);
+int is_name_and_subject_exists(sqlite3 *db, const char *name, int exam_day, const char *subject_column);
 
-// コールバック関数（削除操作では通常NULLでOKだが、必要なら）
-int delete_callback(void* data, int argc, char** argv, char** azColName) {
+// 以下はDB操作の本体
+//指定された受験者のすべてのデータを削除
+int delete_examinee_all(sqlite3 *db, const char *name) {
+    char *err_msg = NULL;
+    sqlite3_stmt *stmt;
+    const char *sql = "DELETE FROM testtable WHERE name = ?;";
+
+    // SQL 文の準備
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "SQL 文の準備に失敗しました: %s\n", sqlite3_errmsg(db));
+        return -1;
+    }
+
+    // プレースホルダに値をバインド
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK) {
+        fprintf(stderr, "SQL 文のバインドに失敗しました: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+
+    // SQL 文を実行
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        fprintf(stderr, "受験者データの削除に失敗しました: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+
+    printf("受験者「%s」のすべてのデータを削除しました。\n", name);
+    sqlite3_finalize(stmt);
+    return 0;
+}
+//指定された受験者の特定の試験日データを削除
+int delete_examinee_examday(sqlite3 *db, const char *name, int exam_day) {
+    char *err_msg = NULL;
+    sqlite3_stmt *stmt;
+    const char *sql = "DELETE FROM testtable WHERE name = ? AND exam_day = ?;";
+
+    // SQL 文の準備
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "SQL 文の準備に失敗しました: %s\n", sqlite3_errmsg(db));
+        return -1;
+    }
+
+    // プレースホルダに値をバインド
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 2, exam_day) != SQLITE_OK) {
+        fprintf(stderr, "SQL 文のバインドに失敗しました: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+
+    // SQL 文を実行
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        fprintf(stderr, "受験者の試験日データの削除に失敗しました: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+
+    printf("受験者「%s」の試験日「%d」のデータを削除しました。\n", name, exam_day);
+    sqlite3_finalize(stmt);
+    return 0;
+}
+//指定された科目を削除（リセット）
+int delete_examinee_subject(sqlite3 *db, const char *name, int exam_day, const char *subject_column) {
+    sqlite3_stmt *stmt;
+    char sql[256];
+    snprintf(sql, sizeof(sql),
+        "UPDATE testtable SET %s = NULL WHERE name = ? AND exam_day = ?;", subject_column);
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "SQL文準備失敗: %s\n", sqlite3_errmsg(db));
+        return -1;
+    }
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 2, exam_day) != SQLITE_OK) {
+        fprintf(stderr, "バインド失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        fprintf(stderr, "実行失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return -1;
+    }
+    sqlite3_finalize(stmt);
+    printf("受験者「%s」、試験日「%d」の科目「%s」の点数をリセットしました。\n", name, exam_day, subject_column);
+    return 0;
+}
+//指定された名前と日付がデータベースに存在するかを確認
+int is_name_and_date_exists(sqlite3 *db, const char *name, int exam_day) {
+    sqlite3_stmt *stmt;
+
+    // 名前と試験日の存在確認を行うSQL文
+    const char *sql = "SELECT COUNT(*) FROM testtable WHERE name = ? AND exam_day = ?;";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "ステートメントの準備に失敗: %s\n", sqlite3_errmsg(db));
+        return 0; // エラー時は存在しないとみなす
+    }
+
+    // 名前と試験日をバインド
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 2, exam_day) != SQLITE_OK) {
+        fprintf(stderr, "バインドに失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+
+    // 結果を取得
+    int count = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        count = sqlite3_column_int(stmt, 0); // 件数を取得
+    }
+    sqlite3_finalize(stmt);
+    return count > 0; // 件数が0より大きければ存在
+}
+
+// 指定された名前と試験日があり、その科目の点数がNULLでないかをチェックする関数
+int is_name_and_subject_exists(sqlite3 *db, const char *name, int exam_day, const char *subject_column) {
+    sqlite3_stmt *stmt;
+    char sql[256];
+    snprintf(sql, sizeof(sql),
+        "SELECT COUNT(*) FROM testtable WHERE name = ? AND exam_day = ? AND %s IS NOT NULL;", subject_column);
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "ステートメントの準備に失敗: %s\n", sqlite3_errmsg(db));
+        return 0;
+    }
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 2, exam_day) != SQLITE_OK) {
+        fprintf(stderr, "バインドに失敗: %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+
+    int count = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        count = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return count > 0;
+}
+
+// 科目削除（指定された名前と科目のデータを削除）
+int delete_examinee_subject_with_validation(sqlite3 *db) {
+    char name[61];
+    char exam_date_str[16];
+    int exam_day;
+    char input[16];
+
+    // 科目選択用配列（ここはテーブルのカラム名と対応）
+    const char *subjects[] = {
+        "nLang", "math", "Eng", "JHist", "wHist", "geo", "phys", "chem", "bio"
+    };
+    const char *subjects_ja[] = {
+        "国語", "数学", "英語", "日本史", "世界史", "地理", "物理", "化学", "生物"
+    };
+    const int subject_count = sizeof(subjects) / sizeof(subjects[0]);
+
+    // 名前入力チェック
+    while (1) {
+        printf("科目の点数をリセットする受験者の名前を全角カタカナで入力してください（20文字以内）: ");
+        if (fgets(name, sizeof(name), stdin) == NULL) {
+            printf("入力エラーが発生しました。再度入力してください。\n");
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            continue;
+        }
+        size_t len = strlen(name);
+        if (len > 0 && name[len - 1] == '\n') name[len - 1] = '\0';
+        else {
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            printf("エラー: 入力が長すぎます。20文字以内で入力してください。\n");
+            continue;
+        }
+        trim_input(name);
+
+        int ret = validate_name(name);
+        if (ret == 0) {
+            if (!is_name_exists(db, name)) {
+                printf("エラー: 指定された名前の受験者データは存在しません。\n");
+                continue;
+            }
+            break;
+        } else if (ret == 1) {
+            printf("エラー: 名前を入力してください。\n");
+        } else if (ret == 2) {
+            printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+        } else if (ret == 3) {
+            printf("エラー: 名前は全角カタカナで入力してください。\n");
+        } else {
+            printf("エラー: 名前の形式が正しくありません。\n");
+        }
+    }
+
+    // 試験日入力チェック
+    while (1) {
+        printf("科目の点数をリセットする試験日を8桁で入力してください（例: 20250513）: ");
+        if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
+            printf("入力エラーが発生しました。\n");
+            continue;
+        }
+        exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
+        trim_input(exam_date_str);
+
+        if (strlen(exam_date_str) != 8 || strspn(exam_date_str, "0123456789") != 8) {
+            printf("エラー: 試験日は8桁の数字で入力してください（例: 20250513）。\n");
+            continue;
+        }
+
+        if (!touroku_validate_date(exam_date_str)) continue;
+        if (!is_date_in_valid_range(exam_date_str)) continue;
+
+        exam_day = atoi(exam_date_str);
+
+        if (!is_name_and_date_exists(db, name, exam_day)) {
+            printf("エラー: 指定された名前と試験日のデータは存在しません。\n");
+            continue;
+        }
+        break;
+    }
+
+    // 科目選択
+    while (1) {
+        printf("リセットする科目を番号で選択してください:\n");
+        for (int i = 0; i < subject_count; i++) {
+            printf("%d. %s\n", i + 1, subjects_ja[i]);
+        }
+        printf("番号を入力 > ");
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("入力エラーです。\n");
+            continue;
+        }
+        input[strcspn(input, "\n")] = '\0';
+
+        int num = atoi(input);
+        if (num < 1 || num > subject_count) {
+            printf("1～%dの番号を入力してください。\n", subject_count);
+            continue;
+        }
+
+        // ここで指定された科目の点数がNULLかどうかをチェック
+        if (!is_name_and_subject_exists(db, name, exam_day, subjects[num - 1])) {
+            printf("エラー: 指定された科目の点数は既にリセットされています。\n");
+            continue; // 再度選択を促す
+        }
+
+        // 科目点数をNULLにする関数を呼び出し
+        int rc = delete_examinee_subject(db, name, exam_day, subjects[num - 1]);
+        if (rc != 0) {
+            printf("科目点数リセットに失敗しました。\n");
+            return rc;
+        }
+        break;
+    }
+
     return 0;
 }
 
-// 受験者単位で試験結果を削除する
-int delete_examinee_data(sqlite3 *db) {
-    char name[100]; // 氏名入力用バッファ
-    char sql[MAX_SQL_SIZE];
-    sqlite3_stmt *stmt_select_id; // ユーザーID取得用
-    sqlite3_stmt *stmt_delete_user; // ユーザー削除用
-    int rc;
-    int user_id = -1; // 取得したユーザーIDを格納
+// 受験者単位削除＋入力チェック
+int delete_examinee_all_with_validation(sqlite3 *db) {
+    char name[61];
+    while (1) {
+        printf("削除する受験者の名前を全角カタカナで入力してください（20文字以内）: ");
+        if (fgets(name, sizeof(name), stdin) == NULL) {
+            printf("入力エラーが発生しました。再度入力してください。\n");
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            continue;
+        }
+        size_t len = strlen(name);
+        if (len > 0 && name[len - 1] == '\n') name[len - 1] = '\0';
+        else {
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            printf("エラー: 入力が長すぎます。20文字以内で入力してください。\n");
+            continue;
+        }
+        trim_input(name); // 入力文字列のトリム
 
-    printf("\n--- 受験者単位削除 ---\n");
-    printf("削除したい受験者の氏名を入力してください: ");
-    if (scanf("%99s", name) != 1) {
-        printf("無効な入力です。\n");
-        while (getchar() != '\n'); // 入力バッファをクリア
-        return 1;
-    }
-    while (getchar() != '\n'); // scanfの後の改行を消費
-
-    // 1. まず氏名から users.id を取得する
-    const char *select_user_id_sql = "SELECT id FROM users WHERE name = ?;";
-    rc = sqlite3_prepare_v2(db, select_user_id_sql, -1, &stmt_select_id, NULL);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL準備エラー (ユーザーID取得): %s\n", sqlite3_errmsg(db));
-        return 1;
-    }
-    sqlite3_bind_text(stmt_select_id, 1, name, -1, SQLITE_TRANSIENT);
-
-    rc = sqlite3_step(stmt_select_id);
-    if (rc == SQLITE_ROW) {
-        user_id = sqlite3_column_int(stmt_select_id, 0); // ユーザーIDが見つかった
-    } else if (rc == SQLITE_DONE) {
-        printf("氏名 '%s' の受験者は見つかりませんでした。\n", name);
-        sqlite3_finalize(stmt_select_id);
-        return 0; // 見つからなかった場合は削除せず成功終了
-    } else {
-        fprintf(stderr, "ユーザーID取得実行エラー: %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt_select_id);
-        return 1;
-    }
-    sqlite3_finalize(stmt_select_id); // ステートメントを解放
-
-    printf("氏名 '%s' (ID: %d) の全ての試験結果を削除します。よろしいですか？ (y/n): ", name, user_id);
-    char confirm;
-    scanf(" %c", &confirm);
-    while (getchar() != '\n');
-
-    if (confirm != 'y' && confirm != 'Y') {
-        printf("削除をキャンセルしました。\n");
-        return 0;
+        int ret = validate_name(name);
+        if (ret == 0) { // 名前形式が正しい場合
+            if (!is_name_exists(db, name)) { // is_name_exists を利用
+                printf("エラー: 指定された名前の受験者データは存在しません。\n");
+                continue; // 名前入力を再度促す
+            }
+            break; // 名前が存在する場合は次の処理へ
+        } else if (ret == 1) {
+            printf("エラー: 名前を入力してください。\n");
+        } else if (ret == 2) {
+            printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+        } else if (ret == 3) {
+            printf("エラー: 名前は全角カタカナで入力してください。\n");
+        } else {
+            printf("エラー: 名前の形式が正しくありません。\n");
+        }
     }
 
-    // 2. ユーザーを users テーブルから削除
-    // ON DELETE CASCADE が設定されている場合、関連するexam_sessionsとscoresも自動的に削除される
-    snprintf(sql, MAX_SQL_SIZE, "DELETE FROM users WHERE id = ?;");
-
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt_delete_user, NULL);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL準備エラー (ユーザー削除): %s\n", sqlite3_errmsg(db));
-        return 1;
+    // 名前が存在する場合に削除を実行
+    int rc = delete_examinee_all(db, name);
+    if (rc != 0) {
+        printf("データベース削除に失敗しました。\n");
     }
-    sqlite3_bind_int(stmt_delete_user, 1, user_id); // 取得したユーザーIDをバインド
+    return rc;
+}
 
-    rc = sqlite3_step(stmt_delete_user);
-    if (rc != SQLITE_DONE) {
-        fprintf(stderr, "SQL実行エラー (ユーザー削除): %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt_delete_user);
-        return 1;
+// 試験単位削除＋入力チェック
+int delete_examinee_examday_with_validation(sqlite3 *db) {
+    char name[61];
+    char exam_date_str[16];
+    int exam_day;
+
+    // 名前入力チェック
+    while (1) {
+        printf("削除する受験者の名前を全角カタカナで入力してください（20文字以内）: ");
+        if (fgets(name, sizeof(name), stdin) == NULL) {
+            printf("入力エラーが発生しました。再度入力してください。\n");
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            continue;
+        }
+        size_t len = strlen(name);
+        if (len > 0 && name[len - 1] == '\n') name[len - 1] = '\0';
+        else {
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            printf("エラー: 入力が長すぎます。20文字以内で入力してください。\n");
+            continue;
+        }
+        trim_input(name);
+
+        int ret = validate_name(name);
+        if (ret == 0) {
+            if (!is_name_exists(db, name)) { // is_name_exists を利用
+                printf("エラー: 指定された名前の受験者データは存在しません。\n");
+                continue; // 名前入力を再度促す
+            }
+            break;
+        } else if (ret == 1) {
+            printf("エラー: 名前を入力してください。\n");
+        } else if (ret == 2) {
+            printf("エラー: 名前は20文字以内で入力してください（全角カタカナ）。\n");
+        } else if (ret == 3) {
+            printf("エラー: 名前は全角カタカナで入力してください。\n");
+        } else {
+            printf("エラー: 名前の形式が正しくありません。\n");
+        }
     }
 
-    printf("氏名 '%s' (ID: %d) の試験結果が削除されました。\n", name, user_id);
+    // 試験日入力チェック
+    while (1) {
+        printf("削除する試験日を8桁で入力してください（例: 20250513）: ");
+        if (fgets(exam_date_str, sizeof(exam_date_str), stdin) == NULL) {
+            printf("入力エラーが発生しました。\n");
+            continue;
+        }
+        exam_date_str[strcspn(exam_date_str, "\n")] = '\0';
+        trim_input(exam_date_str);
 
-    sqlite3_finalize(stmt_delete_user); // ステートメントを解放
+        if (strlen(exam_date_str) != 8 || strspn(exam_date_str, "0123456789") != 8) {
+            printf("エラー: 試験日は8桁の数字で入力してください（例: 20250513）。\n");
+            continue;
+        }
+
+        if (!touroku_validate_date(exam_date_str)) continue;
+        if (!is_date_in_valid_range(exam_date_str)) continue;
+
+        exam_day = atoi(exam_date_str);
+
+        if (!is_name_and_date_exists(db, name, exam_day)) {
+            printf("エラー: 指定された名前と試験日のデータは存在しません。\n");
+            continue; // 再入力を促す
+        }
+
+        
+        break;
+    }
+
+    int rc = delete_examinee_examday(db, name, exam_day);
+    if (rc != 0) {
+        printf("データベース削除に失敗しました。\n");
+    }
+    return rc;
+}
+
+// 全てのデータを削除
+int delete_all_data(sqlite3 *db) {
+    char *err_msg = NULL;
+
+    // トランザクション開始
+    if (sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "トランザクション開始に失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        return -1;
+    }
+
+    // 全データ削除
+    if (sqlite3_exec(db, "DELETE FROM testtable;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "全データ削除に失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
+        return -1;
+    }
+
+    // AUTOINCREMENTのシーケンスリセット
+    if (sqlite3_exec(db, "DELETE FROM sqlite_sequence WHERE name='testtable';", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "IDリセットに失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
+        return -1;
+    }
+
+    // コミット
+    if (sqlite3_exec(db, "COMMIT;", NULL, NULL, &err_msg) != SQLITE_OK) {
+        fprintf(stderr, "トランザクションコミットに失敗しました: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        return -1;
+    }
+
+    printf("全てのデータを削除し、IDをリセットしました。\n");
     return 0;
 }
 
-int delete_exam_data(sqlite3 *db) {
-    char name[100];
-    char exam_date_str[9]; // YYYYMMDD形式の文字列として扱う
-    char sql[MAX_SQL_SIZE];
-    sqlite3_stmt *stmt_select_id; // ユーザーIDとセッションID取得用
-    sqlite3_stmt *stmt_delete_session; // セッション削除用
-    int rc;
-    int user_id = -1;
-    int exam_session_id = -1;
+// 削除メニュー表示と選択処理
+void delete_menu(sqlite3 *db) {
+    while (1) {
+        printf("\n=== 削除メニュー ===\n");
+        printf("1. 受験者単位の削除\n");
+        printf("2. 試験日単位の削除\n");
+        printf("3. 科目単位の削除\n");
+        printf("4. 全てのデータを削除(IDもリセットされます）\n");
+        printf("5. キャンセル\n");
+        printf("番号を入力してください > ");
 
-    printf("\n--- 試験日単位削除 ---\n");
-    printf("削除したい受験者の氏名を入力してください: ");
-    if (scanf("%99s", name) != 1) {
-        printf("無効な入力です。\n");
-        while (getchar() != '\n');
-        return 1;
+        char input[10];
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            printf("入力エラーです。\n");
+            continue;
+        }
+
+        // 改行削除
+        input[strcspn(input, "\n")] = '\0';
+
+        // 数字のみチェック
+        int valid = 1;
+        for (size_t i = 0; i < strlen(input); i++) {
+            if (!isdigit((unsigned char)input[i])) {
+                valid = 0;
+                break;
+            }
+        }
+
+        if (!valid || strlen(input) == 0) {
+            printf("数字のみを入力してください。\n");
+            continue;
+        }
+
+        int choice = atoi(input);
+
+        if (choice == 1) {
+            if (delete_examinee_all_with_validation(db) != 0) {
+                printf("受験者単位の削除に失敗しました。\n");
+            }
+            break;
+        } else if (choice == 2) {
+            if (delete_examinee_examday_with_validation(db) != 0) {
+                printf("試験単位の削除に失敗しました。\n");
+            }
+            break;
+        } else if (choice == 3) {
+            if (delete_examinee_subject_with_validation(db) != 0) {
+                printf("科目単位の削除に失敗しました。\n");
+            }
+            break;
+        } else if (choice == 4) {
+            char confirm1[8];
+            char confirm2[8];
+            printf("本当に全てのデータを削除しますか？ [y/N]: ");
+            if (fgets(confirm1, sizeof(confirm1), stdin) == NULL) {
+                printf("入力エラーが発生しました。\n");
+                continue;
+            }
+            if (tolower(confirm1[0]) != 'y') {
+                printf("全てのデータ削除をキャンセルしました。\n");
+                break;
+            }
+
+            printf("確認: 本当に削除します。よろしいですか？ [y/N]: ");
+            if (fgets(confirm2, sizeof(confirm2), stdin) == NULL) {
+                printf("入力エラーが発生しました。\n");
+                continue;
+            }
+            if (tolower(confirm2[0]) == 'y') {
+                if (delete_all_data(db) != 0) {
+                    printf("全てのデータ削除に失敗しました。\n");
+                }
+            } else {
+                printf("全てのデータ削除をキャンセルしました。\n");
+            }
+            break;
+        } else if (choice == 5) {
+            printf("削除操作をキャンセルしました。\n");
+            break;
+        } else {
+            printf("1～5の数字を入力してください。\n");
+        }
     }
-    while (getchar() != '\n');
-
-    printf("削除したい試験の実施日を入力してください (YYYYMMDD形式): ");
-    // exam_date は TEXT 型なので文字列として読み込むのが安全です
-    if (scanf("%8s", exam_date_str) != 1 || strlen(exam_date_str) != 8) {
-        printf("無効な入力です。YYYYMMDD形式で8桁の数字を入力してください。\n");
-        while (getchar() != '\n');
-        return 1;
-    }
-    while (getchar() != '\n');
-
-    // 1. 氏名から users.id を取得
-    const char *select_user_id_sql = "SELECT id FROM users WHERE name = ?;";
-    rc = sqlite3_prepare_v2(db, select_user_id_sql, -1, &stmt_select_id, NULL);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL準備エラー (ユーザーID取得): %s\n", sqlite3_errmsg(db));
-        return 1;
-    }
-    sqlite3_bind_text(stmt_select_id, 1, name, -1, SQLITE_TRANSIENT);
-    rc = sqlite3_step(stmt_select_id);
-    if (rc == SQLITE_ROW) {
-        user_id = sqlite3_column_int(stmt_select_id, 0);
-    } else if (rc == SQLITE_DONE) {
-        printf("氏名 '%s' の受験者は見つかりませんでした。\n", name);
-        sqlite3_finalize(stmt_select_id);
-        return 0;
-    } else {
-        fprintf(stderr, "ユーザーID取得実行エラー: %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt_select_id);
-        return 1;
-    }
-    sqlite3_finalize(stmt_select_id); // ステートメントを解放
-
-    // 2. user_id と exam_date_str から exam_sessions.id を取得
-    const char *select_session_id_sql = "SELECT id FROM exam_sessions WHERE user_id = ? AND exam_date = ?;";
-    rc = sqlite3_prepare_v2(db, select_session_id_sql, -1, &stmt_select_id, NULL); // stmt_select_id を再利用
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL準備エラー (セッションID取得): %s\n", sqlite3_errmsg(db));
-        return 1;
-    }
-    sqlite3_bind_int(stmt_select_id, 1, user_id);
-    sqlite3_bind_text(stmt_select_id, 2, exam_date_str, -1, SQLITE_TRANSIENT);
-
-    rc = sqlite3_step(stmt_select_id);
-    if (rc == SQLITE_ROW) {
-        exam_session_id = sqlite3_column_int(stmt_select_id, 0); // セッションIDが見つかった
-    } else if (rc == SQLITE_DONE) {
-        printf("氏名 '%s' の %s の試験結果は見つかりませんでした。\n", name, exam_date_str);
-        sqlite3_finalize(stmt_select_id);
-        return 0;
-    } else {
-        fprintf(stderr, "セッションID取得実行エラー: %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt_select_id);
-        return 1;
-    }
-    sqlite3_finalize(stmt_select_id); // ステートメントを解放
-
-    printf("氏名 '%s' の %s の試験結果を削除します。よろしいですか？ (y/n): ", name, exam_date_str);
-    char confirm;
-    scanf(" %c", &confirm);
-    while (getchar() != '\n');
-
-    if (confirm != 'y' && confirm != 'Y') {
-        printf("削除をキャンセルしました。\n");
-        return 0;
-    }//test
-
-    // 3. 該当する exam_sessions レコードを削除
-    // ON DELETE CASCADE が設定されている場合、関連する scores も自動的に削除される
-    snprintf(sql, MAX_SQL_SIZE, "DELETE FROM exam_sessions WHERE id = ?;");
-
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt_delete_session, NULL);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL準備エラー (セッション削除): %s\n", sqlite3_errmsg(db));
-        return 1;
-    }
-    sqlite3_bind_int(stmt_delete_session, 1, exam_session_id);
-
-    rc = sqlite3_step(stmt_delete_session);
-    if (rc != SQLITE_DONE) {
-        fprintf(stderr, "SQL実行エラー (セッション削除): %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt_delete_session);
-        return 1;
-    }
-
-    printf("氏名 '%s' の %s の試験結果が削除されました。\n", name, exam_date_str);
-
-    sqlite3_finalize(stmt_delete_session); // ステートメントを解放
-    return 0;
 }
