@@ -476,21 +476,25 @@ void delete_menu(sqlite3 *db) {
         int choice = atoi(input);
 
         if (choice == 1) {
+            reset_db_connection(&db);  // データベース接続リセット
             if (delete_examinee_all_with_validation(db) != 0) {
                 printf("受験者単位の削除に失敗しました。\n");
             }
             break;
         } else if (choice == 2) {
+            reset_db_connection(&db);  // データベース接続リセット
             if (delete_examinee_examday_with_validation(db) != 0) {
                 printf("試験日単位の削除に失敗しました。\n");
             }
             break;
         } else if (choice == 3) {
+            reset_db_connection(&db);  // データベース接続リセット
             if (delete_examinee_subject_with_validation(db) != 0) {
                 printf("科目単位の削除に失敗しました。\n");
             }
             break;
         } else if (choice == 4) {
+            reset_db_connection(&db);  // データベース接続リセット
             char confirm1[8];
             char confirm2[8];
             printf("本当に全てのデータを削除しますか？ [y/N]: ");
