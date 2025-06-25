@@ -1,8 +1,8 @@
 // delete_operations.c
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-
+#include <ctype.h>
+#include <stdlib.h>
 #include "sqlite3.h"
 #include "delete_operations.h"
 #include "touroku.h"
@@ -476,7 +476,7 @@ void delete_menu(sqlite3 *db) {
             break;
         } else if (choice == 2) {
             if (delete_examinee_examday_with_validation(db) != 0) {
-                printf("試験単位の削除に失敗しました。\n");
+                printf("試験日単位の削除に失敗しました。\n");
             }
             break;
         } else if (choice == 3) {
