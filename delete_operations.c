@@ -238,17 +238,16 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
     }
      int id;
     int scores[9];
-    const char *subjects[] = {"nLang", "math", "Eng", "JHist", "wHist", "geo", "phys", "chem", "bio"};
-    const char *subjects_jp[] = {"国語", "数学", "英語", "日本史", "世界史", "地理", "物理", "化学", "生物"};
+    
     // 科目選択
     while (1) {
         printf("リセットする科目を番号で選択してください:\n");
         for (int i = 0; i < subject_count; i++) {
             printf("【現在の情報】\n");
         printf("1. 氏名: %s\n", name);
-        printf("2. 試験日: %s\n", exam_day);
+        printf("2. 試験日: %d\n", exam_day);
         for (int i = 0; i < 9; i++) {
-        printf("%d. %s: ", i + 3, subjects_jp[i]);
+        printf("%d. %s: ", i + 3, subjects_ja[i]);
         if (scores[i] == 0) {
             printf("入力されていません\n");
         } else {
