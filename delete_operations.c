@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+
 #include "sqlite3.h"
 #include "delete_operations.h"
 #include "touroku.h"
@@ -236,19 +237,16 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
         }
         break;
     }
-     int id;
-    int scores[9];
-    
+
     // 科目選択
     while (1) {
         printf("リセットする科目を番号で選択してください:\n");
         for (int i = 0; i < subject_count; i++) {
-            printf("%d. %s\n", i + 1, subjects_ja[i]);
-            if (scores[i] == 0) {
-            printf("入力されていません\n");
-        } else {
-            printf("%d\n", scores[i]);
-        }
+            if (!is_name_and_subject_exists(db, name, exam_day, subjects[i])) {
+                printf("%d. %s（入力されていません）\n", i + 1, subjects_ja[i]);
+            } else {
+                printf("%d. %s\n", i + 1, subjects_ja[i]);
+            }
         }
         printf("番号を入力 > ");
         if (fgets(input, sizeof(input), stdin) == NULL) {
@@ -263,9 +261,9 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
             continue;
         }
 
-        // ここで指定された科目の点数がNULLかどうかをチェック
+        // 未入力の科目を選んだ場合の処理
         if (!is_name_and_subject_exists(db, name, exam_day, subjects[num - 1])) {
-            printf("エラー: 指定された科目の点数は既にリセットされています。\n");
+            printf("エラー: 指定された科目「%s」は入力されていません。\n", subjects_ja[num - 1]);
             continue; // 再度選択を促す
         }
 
@@ -276,11 +274,10 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
             return rc;
         }
         break;
-        }
     }
 
     return 0;
-
+}
 
 // 受験者単位削除＋入力チェック
 int delete_examinee_all_with_validation(sqlite3 *db) {
