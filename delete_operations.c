@@ -438,7 +438,7 @@ void delete_menu(sqlite3 *db) {
     while (1) {
         printf("\n=== 削除メニュー ===\n");
         printf("1. 受験者単位の削除\n");
-        printf("2. 試験単位の削除\n");
+        printf("2. 試験日単位の削除\n");
         printf("3. 科目単位の削除\n");
         printf("4. 全てのデータを削除(IDもリセットされます）\n");
         printf("5. キャンセル\n");
