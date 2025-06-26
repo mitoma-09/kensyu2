@@ -848,7 +848,7 @@ int register_existing_examinee(sqlite3 *db) {
     trim_input(exam_date_str);
 
     // デバッグ出力：入力文字列と長さを表示
-    printf("[DEBUG] 入力文字列: '%s', 長さ: %zu\n", exam_date_str, strlen(exam_date_str));
+    //printf("[DEBUG] 入力文字列: '%s', 長さ: %zu\n", exam_date_str, strlen(exam_date_str));
 
     // 入力文字数チェック（8文字ピッタリでなければエラー）
     if (strlen(exam_date_str) != 8) {

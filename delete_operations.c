@@ -3,9 +3,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+
 #include "sqlite3.h"
 #include "delete_operations.h"
 #include "touroku.h"
+#include "update.h"
 
 // 以下、名前の妥当性チェック関数や日付チェック関数
 int validate_name(const char *name);
@@ -240,7 +242,11 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
     while (1) {
         printf("リセットする科目を番号で選択してください:\n");
         for (int i = 0; i < subject_count; i++) {
-            printf("%d. %s\n", i + 1, subjects_ja[i]);
+            if (!is_name_and_subject_exists(db, name, exam_day, subjects[i])) {
+                printf("%d. %s（入力されていません）\n", i + 1, subjects_ja[i]);
+            } else {
+                printf("%d. %s\n", i + 1, subjects_ja[i]);
+            }
         }
         printf("番号を入力 > ");
         if (fgets(input, sizeof(input), stdin) == NULL) {
@@ -255,9 +261,9 @@ int delete_examinee_subject_with_validation(sqlite3 *db) {
             continue;
         }
 
-        // ここで指定された科目の点数がNULLかどうかをチェック
+        // 未入力の科目を選んだ場合の処理
         if (!is_name_and_subject_exists(db, name, exam_day, subjects[num - 1])) {
-            printf("エラー: 指定された科目の点数は既にリセットされています。\n");
+            printf("エラー: 指定された科目「%s」は入力されていません。\n", subjects_ja[num - 1]);
             continue; // 再度選択を促す
         }
 
@@ -470,21 +476,25 @@ void delete_menu(sqlite3 *db) {
         int choice = atoi(input);
 
         if (choice == 1) {
+            reset_db_connection(&db);  // データベース接続リセット
             if (delete_examinee_all_with_validation(db) != 0) {
                 printf("受験者単位の削除に失敗しました。\n");
             }
             break;
         } else if (choice == 2) {
+            reset_db_connection(&db);  // データベース接続リセット
             if (delete_examinee_examday_with_validation(db) != 0) {
-                printf("試験単位の削除に失敗しました。\n");
+                printf("試験日単位の削除に失敗しました。\n");
             }
             break;
         } else if (choice == 3) {
+            reset_db_connection(&db);  // データベース接続リセット
             if (delete_examinee_subject_with_validation(db) != 0) {
                 printf("科目単位の削除に失敗しました。\n");
             }
             break;
         } else if (choice == 4) {
+            reset_db_connection(&db);  // データベース接続リセット
             char confirm1[8];
             char confirm2[8];
             printf("本当に全てのデータを削除しますか？ [y/N]: ");
