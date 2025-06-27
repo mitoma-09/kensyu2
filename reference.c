@@ -854,7 +854,7 @@ int disp_choice2(void){
 
         
         //CLEAR_INPUT_BUFFER();
-        wait_for_enter();
+        //wait_for_enter();
         isFirstCall = 1; // ヘッダーのリセット
         display_total_deviation_scores(text);
 
